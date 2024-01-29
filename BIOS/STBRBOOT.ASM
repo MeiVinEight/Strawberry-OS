@@ -10,6 +10,25 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+	;0. Calculate PE32+ entry
+	;Read Image Base (0x00010100)
+	MOV BX, OFFSET JMPENTRY
+	DB 66H
+	MOV SI, [BX]
+	;Calculate NT Header
+	DB 66H
+	MOV DI, SI
+	DB 66H
+	ADD DI, [SI+3CH]
+	;Calculate Entry Point Address
+	DB 66H
+	ADD SI, [DI+28H]
+	;Store address to jmp
+	DB 66H
+	MOV [BX], SI
+
+	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 	;1. Set GDT at 0000:0420
 	;GDT[0] = 0x0000000000000000 RSV
 	;GDT[1] = 0x0020980000000000 CODE
@@ -169,6 +188,7 @@ CODE SEGMENT
 
 	;10. JMP FAR 0008:00010200
 	DB 66H, 0EAH
+	JMPENTRY:
 	DD 00010100H
 	DW 0008H
 
@@ -181,10 +201,6 @@ CODE SEGMENT
 
 	ORG 100H
 	LONGMODE PROC
-	MOV AX, 8000H
-	DW 000BH
-	;MOV WORD PTR [RAX], 5307H
-	DB 66H, 0C7H, 00H, 53H, 07H
 	SELFSPIN:
 	JMP SELFSPIN
 	LONGMODE ENDP
