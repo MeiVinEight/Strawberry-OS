@@ -1,0 +1,97 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "V:\\VM\\STRAWBERRY\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{C1042D1D-5A89-4848-9E01-7B0CB9FF4B10}|.vs\\BIOS\\BIOS.vcxproj|V:\\VM\\STRAWBERRY\\BIOS\\STBR64.C||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{C1042D1D-5A89-4848-9E01-7B0CB9FF4B10}|.vs\\BIOS\\BIOS.vcxproj|solutionrelative:BIOS\\STBR64.C||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49B0F7DF-ACC8-4229-B8E2-9B4A1AFABC0E}|.vs\\KERNEL\\KERNEL.vcxproj|V:\\VM\\STRAWBERRY\\KERNEL\\SOURCE\\kernel.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{49B0F7DF-ACC8-4229-B8E2-9B4A1AFABC0E}|.vs\\KERNEL\\KERNEL.vcxproj|solutionrelative:KERNEL\\SOURCE\\kernel.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{C1042D1D-5A89-4848-9E01-7B0CB9FF4B10}|.vs\\BIOS\\BIOS.vcxproj|V:\\VM\\STRAWBERRY\\BIOS\\intrinsic.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{C1042D1D-5A89-4848-9E01-7B0CB9FF4B10}|.vs\\BIOS\\BIOS.vcxproj|solutionrelative:BIOS\\intrinsic.c||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{e506b91c-c606-466a-90a9-123d1d1e12b3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{904ea1b4-c6a7-4eca-94a1-76eab06c5187}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "kernel.c",
+              "DocumentMoniker": "V:\\VM\\STRAWBERRY\\KERNEL\\SOURCE\\kernel.c",
+              "RelativeDocumentMoniker": "KERNEL\\SOURCE\\kernel.c",
+              "ToolTip": "V:\\VM\\STRAWBERRY\\KERNEL\\SOURCE\\kernel.c",
+              "RelativeToolTip": "KERNEL\\SOURCE\\kernel.c",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAQAAAABAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2024-01-29T12:22:09.204Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "intrinsic.c",
+              "DocumentMoniker": "V:\\VM\\STRAWBERRY\\BIOS\\intrinsic.c",
+              "RelativeDocumentMoniker": "BIOS\\intrinsic.c",
+              "ToolTip": "V:\\VM\\STRAWBERRY\\BIOS\\intrinsic.c",
+              "RelativeToolTip": "BIOS\\intrinsic.c",
+              "ViewState": "AQIAAA4AAAAAAAAAAAAIwB8AAAACAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2024-01-28T04:02:54.676Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "STBR64.C",
+              "DocumentMoniker": "V:\\VM\\STRAWBERRY\\BIOS\\STBR64.C",
+              "RelativeDocumentMoniker": "BIOS\\STBR64.C",
+              "ToolTip": "V:\\VM\\STRAWBERRY\\BIOS\\STBR64.C",
+              "RelativeToolTip": "BIOS\\STBR64.C",
+              "ViewState": "AQIAAN4AAAAAAAAAAAAAAO8AAAAOAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000423|",
+              "WhenOpened": "2024-01-28T04:08:59.497Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 1574,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
