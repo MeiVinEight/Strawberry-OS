@@ -1,5 +1,5 @@
 void _DllMainCRTStartup()
 {
-	*((char *) 0x00B8000) = 0x20;
+	*((unsigned short *) 0x00B8000) = 0x0753;
 	while (1);
 }

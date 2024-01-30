@@ -1,0 +1,8 @@
+﻿  Microsoft (R) Incremental Linker Version 14.39.33321.0
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  "/OUT:V:\VM\Strawberry-OS\BIOS\STBR64.EXE" /INCREMENTAL:NO /NODEFAULTLIB /SUBSYSTEM:CONSOLE "/BASE:0" "/MERGE:.text=TEXT" /ALIGN:16 "V:\VM\Strawberry-OS\.vs\BIOS\.compile\intrinsic.obj" 
+  "V:\VM\Strawberry-OS\.vs\BIOS\.compile\STBR64.obj" 
+LINK : warning LNK4108: /ALIGN specified without /DRIVER; image may not run
+LINK : warning LNK4254: section '.text' (60000020) merged into 'TEXT' (C0000040) with different attributes
+LINK : warning LNK4281: undesirable base address 0x0 for x64 image; set base address above 4GB for best ASLR optimization
+  BIOS.vcxproj -> V:\VM\Strawberry-OS\BIOS\STBR64.EXE
