@@ -7,10 +7,33 @@
     <Filter Include="SOURCE">
       <UniqueIdentifier>{cdf4dcbe-4f90-4f0d-9cd2-cd4a077e07a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\console">
+      <UniqueIdentifier>{ed607b0e-86b3-4a22-9a79-7306edd32ac8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\console">
+      <UniqueIdentifier>{75738f5b-87d8-4632-9fe5-e8cebc482617}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c">
       <Filter>SOURCE</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\vga_screen.c">
+      <Filter>SOURCE\console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\scroll.c">
+      <Filter>SOURCE\console</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\KERNEL\HEADER\types.h">
+      <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\console\console.h">
+      <Filter>HEADER\console</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\declspec.h">
+      <Filter>HEADER</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,5 +1,8 @@
+#include <console/console.h>
+
 void _DllMainCRTStartup()
 {
-	*((unsigned short *) 0x00B8000) = 0x0753;
+	screen.color = 0x0F;
+	OUTPUTTEXT("Strawberry-OS");
 	while (1);
 }
