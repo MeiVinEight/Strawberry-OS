@@ -377,6 +377,7 @@
       <CLRImageType />
       <LinkErrorReporting />
       <SectionAlignment>16</SectionAlignment>
+      <MergeSections>.text=CODE</MergeSections>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -501,6 +502,7 @@
       <CLRImageType />
       <LinkErrorReporting />
       <SectionAlignment>16</SectionAlignment>
+      <MergeSections>.text=CODE</MergeSections>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -510,6 +512,8 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\scroll.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\vga_screen.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
   </ItemGroup>
   <ItemGroup>
