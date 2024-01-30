@@ -377,7 +377,7 @@
       <CLRImageType />
       <LinkErrorReporting />
       <SectionAlignment>16</SectionAlignment>
-      <MergeSections>.text=CODE</MergeSections>
+      <MergeSections>.text=TEXT</MergeSections>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />

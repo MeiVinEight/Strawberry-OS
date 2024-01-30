@@ -1,7 +1,7 @@
 #ifndef __KERNEL_DECPSPEC_H__
 #define __KERNEL_DECLSPEC_H__
 
-#define SECTION "CODE"
+#define SECTION "TEXT"
 
 #pragma section(SECTION, read, write)
 
