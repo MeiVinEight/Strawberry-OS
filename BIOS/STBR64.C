@@ -202,7 +202,6 @@ void MOVECURSOR();
 void CARRIAGERETURN();
 void LINEFEED();
 void OUTPUTTEXT(const char *);
-void PRINTRAX(QWORD, BYTE);
 DWORD find_pci();
 DWORD pci_device(DWORD, DWORD);
 DWORD ahci_controller_setup(DWORD);
@@ -225,7 +224,7 @@ const DWORD MFT_RECORD = 0x30;
 
 void mainCRTStartup()
 {
-	OUTPUTTEXT("STRAWBERRY OS\n");
+	// OUTPUTTEXT("STRAWBERRY OS\n");
 	if (!find_pci())
 	{
 		// DOS HEADER
@@ -295,17 +294,6 @@ void OUTPUTTEXT(const char* s)
 	}
 }
 const char HEXDIG[] = "0123456789ABCDEF";
-void PRINTRAX(QWORD x, BYTE s)
-{
-	char buf[17];
-	buf[s] = 0;
-	while (s--)
-	{
-		buf[s] = HEXDIG[x & 0xF];
-		x >>= 4;
-	}
-	OUTPUTTEXT(buf);
-}
 DWORD find_pci()
 {
 	// Config Address
