@@ -338,6 +338,7 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -456,6 +457,7 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -509,6 +511,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
