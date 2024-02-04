@@ -617,6 +617,8 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
@@ -624,6 +626,8 @@
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -19,6 +19,12 @@
     <Filter Include="SOURCE\interrupt">
       <UniqueIdentifier>{4f46e7c5-45b7-48da-adf4-66322f1b475e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\timer">
+      <UniqueIdentifier>{354908b9-846f-4dd8-8915-0d2da1129a35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\timer">
+      <UniqueIdentifier>{59b89b5a-5fdb-4d3c-ab5f-88f726716bf7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c">
@@ -42,6 +48,12 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c">
       <Filter>SOURCE\interrupt</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c">
+      <Filter>SOURCE\timer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c">
+      <Filter>SOURCE\timer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\types.h">
@@ -61,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h">
       <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h">
+      <Filter>HEADER\timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h">
+      <Filter>HEADER\timer</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

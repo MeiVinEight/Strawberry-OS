@@ -2,6 +2,7 @@
 #include <declspec.h>
 #include <interrupt/interrupt.h>
 #include <intrinsic.h>
+#include <timer/timer.h>
 
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
 CODEDECL const char OK[] = "OK\n";
@@ -24,6 +25,7 @@ void _DllMainCRTStartup()
 	LINEFEED();
 
 	setup_interrupt();
+	setup_timer();
 
 	OUTPUTTEXT(OK);
 	while (1) __halt();
