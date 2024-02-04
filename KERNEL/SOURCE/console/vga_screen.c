@@ -36,31 +36,27 @@ void LINEFEED()
 	screen.cursor += 0x50;
 	MOVECURSOR();
 }
-void OUTPUTTEXT(const char* s)
+void OUTCHAR(char ch)
 {
-	while (*s)
+	// low 8 bit is ASCII code
+	WORD x = ch;
+	if (x == '\r')
 	{
-		// low 8 bit is ASCII code
-		WORD x = *s;
-		if (x == '\r')
-		{
-			CARRIAGERETURN();
-		}
-		else if (x == '\n')
-		{
-			LINEFEED();
-		}
-		else
-		{
-			// not CR or LF, output ascii code
-			// high 8 bit is text attribute
-			x |= screen.color << 8;
-			// write to cursor position
-			*((WORD*)(0x000B8000ULL + ((QWORD) screen.cursor << 1))) = x;
-			// Increment cursor pos
-			screen.cursor++;
-		}
-		s++;
-		MOVECURSOR();
+		CARRIAGERETURN();
 	}
+	else if (x == '\n')
+	{
+		LINEFEED();
+	}
+	else
+	{
+		// not CR or LF, output ascii code
+		// high 8 bit is text attribute
+		x |= screen.color << 8;
+		// write to cursor position
+		*((WORD*)(0x000B8000ULL + ((QWORD)screen.cursor << 1))) = x;
+		// Increment cursor pos
+		screen.cursor++;
+	}
+	MOVECURSOR();
 }
