@@ -15,6 +15,7 @@ void SCROLLSCREEN();
 void MOVECURSOR();
 void CARRIAGERETURN();
 void LINEFEED();
+void OUTCHAR(char);
 void OUTPUTTEXT(const char*);
 void PRINTRAX(QWORD, BYTE);
 

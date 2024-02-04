@@ -3,6 +3,13 @@
 
 CODEDECL const char HEXDIG[] = "0123456789ABCDEF";
 
+void OUTPUTTEXT(const char* s)
+{
+	while (*s)
+	{
+		OUTCHAR(s++);
+	}
+}
 void PRINTRAX(QWORD x, BYTE s)
 {
 	char buf[17];
