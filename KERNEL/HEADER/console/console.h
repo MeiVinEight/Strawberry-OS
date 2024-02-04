@@ -16,5 +16,6 @@ void MOVECURSOR();
 void CARRIAGERETURN();
 void LINEFEED();
 void OUTPUTTEXT(const char*);
+void PRINTRAX(QWORD, BYTE);
 
 #endif
