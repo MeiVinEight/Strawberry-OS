@@ -17,32 +17,32 @@
 #define APIC_SOFTWARE_ENABLE 0x100
 #define APIC_SPURIOUS_VECTOR 0xFF
 
-#define APIC_APICID  0x002
-#define APIC_APICVER 0x003
-#define APIC_TPR     0x008
-#define APIC_APR     0x009
-#define APIC_PPR     0x00A
-#define APIC_EOI     0x00B
-#define APIC_RRD     0x00C
-#define APIC_LDR     0x00D
-#define APIC_DFR     0x00E
-#define APIC_SIV     0x00F
-#define APIC_ISR     0x010
-#define APIC_TMR     0x018
-#define APIC_IRR     0x020
-#define APIC_ESR     0x028
-#define APIC_CMCI    0x02F
-#define APIC_ICRL    0x030
-#define APIC_ICRH    0x031
-#define APIC_LVT0    0x032
-#define APIC_LVT1    0x033
-#define APIC_LVT2    0x034
-#define APIC_LVT3    0x035
-#define APIC_LVT4    0x036
-#define APIC_LVTE    0x037
-#define APIC_ICR     0x038
-#define APIC_CCR     0x039
-#define APIC_DCR     0x03E
+#define APIC_APICID  0x02
+#define APIC_APICVER 0x03
+#define APIC_TPR     0x08
+#define APIC_APR     0x09
+#define APIC_PPR     0x0A
+#define APIC_EOI     0x0B
+#define APIC_RRD     0x0C
+#define APIC_LDR     0x0D
+#define APIC_DFR     0x0E
+#define APIC_SIV     0x0F
+#define APIC_ISR     0x10
+#define APIC_TMR     0x18
+#define APIC_IRR     0x20
+#define APIC_ESR     0x28
+#define APIC_CMCI    0x2F
+#define APIC_ICRL    0x30
+#define APIC_ICRH    0x31
+#define APIC_LVT0    0x32
+#define APIC_LVT1    0x33
+#define APIC_LVT2    0x34
+#define APIC_LVT3    0x35
+#define APIC_LVT4    0x36
+#define APIC_LVTE    0x37
+#define APIC_ICR     0x38
+#define APIC_CCR     0x39
+#define APIC_DCR     0x3E
 
 #define APIC_LVT_NMI (1 << 10)
 #define APIC_LVT_CLR (1 << 16)
@@ -69,9 +69,10 @@ void set_apic_address(QWORD adrs)
 	DWORD eax = (adrs & 0xFFFFF000);
 	__writemsr(IA32_APIC_BASE_MSR, eax);
 }
-void eoi_apic()
+void eoi_apic(BYTE id)
 {
-	APIC_REGISTERS[APIC_EOI][0] = 0;
+	if (id >= IRQ_INT && id < (IRQ_INT + 0x10))
+		APIC_REGISTERS[APIC_EOI][0] = 0;
 }
 
 int check_apic()
@@ -87,6 +88,8 @@ void setup_apic()
 	OUTPUTTEXT(MSG0400);
 	set_apic_address(APIC_BASE_ADDRESS);
 	APIC_REGISTERS = (DWORD (*)[4]) APIC_BASE_ADDRESS;
+	// APIC EOI
+	interrupt_eoi = eoi_apic;
 	// Set TPR to 0, receive all interrupts
 	APIC_REGISTERS[APIC_TPR][0] = 0;
 	// Set DFR all bits to 1 for use flat model
@@ -123,7 +126,7 @@ void setup_apic_timer(DWORD rate)
 	APIC_REGISTERS[APIC_LVT0][0] = (IRQ_INT + APIC_TIMER_IRQ);
 	// Set up divide value to 1
 	// See Intel® 64 and IA-32 Architectures Software Developer’s Manual. Volume 2. Figure 11.10
-	APIC_REGISTERS[APIC_DCR][0] = 11;
+	APIC_REGISTERS[APIC_DCR][0] = APIC_TIMER_DCR_1;
 
 	// Prepare PIT sleep 50 ms
 	__outbyte(PIT2_GATE, (__inbyte(PIT2_GATE) & 0xFD) | 1);
@@ -151,9 +154,7 @@ void setup_apic_timer(DWORD rate)
 	// Use it as APIC timer counter initializer
 	APIC_REGISTERS[APIC_ICR][0] = freq;
 	// Setting divide value register again not needed by the manuals
-	APIC_REGISTERS[APIC_DCR][0] = 11;
+	APIC_REGISTERS[APIC_DCR][0] = APIC_TIMER_DCR_1;
 	// Finally re-enable timer in periodic mode
 	APIC_REGISTERS[APIC_LVT0][0] = (IRQ_INT + APIC_TIMER_IRQ) | APIC_TIMER_MODE_PERIODIC;
-	// APIC EOI
-	interrupt_eoi = eoi_apic;
 }
