@@ -39,7 +39,7 @@ void LINEFEED()
 void OUTCHAR(char ch)
 {
 	// low 8 bit is ASCII code
-	WORD x = ch;
+	WORD x = (BYTE) ch;
 	if (x == '\r')
 	{
 		CARRIAGERETURN();

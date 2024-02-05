@@ -8,14 +8,10 @@ CODEDECL const char MSG0200[] = "SETUP 8254 TIMER ";
 CODEDECL const char MSG0201[] = " Hz\n";
 CODEDECL const char ERR0200[] = "PIT RATE TOO SMALL\n";
 
-void interrupt_8254(INTERRUPT_STACK* stack)
-{
-	// Do nothing
-}
 void setup_8254(DWORD rate)
 {
 	OUTPUTTEXT(MSG0200);
-	PRINTRAX(rate, 4);
+	OUTPUTWORD(rate);
 	OUTPUTTEXT(MSG0201);
 	/*
 	 * Command register:0x43
@@ -59,7 +55,5 @@ void setup_8254(DWORD rate)
 	BYTE h = (divider >> 8) & 0xFF;
 	__outbyte(0x40, l);
 	__outbyte(0x40, h);
-	// Register IRQ0 interrupt
-	register_interrupt(IRQ_INT, interrupt_8254);
 	// __sti();
 }

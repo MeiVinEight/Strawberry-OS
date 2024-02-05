@@ -614,6 +614,7 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\console\scroll.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\vga_screen.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
@@ -624,6 +625,7 @@
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />

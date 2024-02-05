@@ -18,5 +18,6 @@ void LINEFEED();
 void OUTCHAR(char);
 void OUTPUTTEXT(const char*);
 void PRINTRAX(QWORD, BYTE);
+void OUTPUTWORD(QWORD);
 
 #endif

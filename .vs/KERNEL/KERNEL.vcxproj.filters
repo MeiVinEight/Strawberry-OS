@@ -54,6 +54,9 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c">
       <Filter>SOURCE\timer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c">
+      <Filter>SOURCE\interrupt</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\types.h">
@@ -79,6 +82,9 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h">
       <Filter>HEADER\timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h">
+      <Filter>HEADER\interrupt</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

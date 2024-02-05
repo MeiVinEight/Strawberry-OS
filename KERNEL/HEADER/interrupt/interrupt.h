@@ -52,6 +52,8 @@ typedef struct _INTERRUPT_STACK
 	QWORD EFLAGS;
 } INTERRUPT_STACK;
 
+extern void (*interrupt_eoi)();
+extern DWORD USEAPIC;
 extern INTERRUPT64 IDT[];
 
 void setup_interrupt();

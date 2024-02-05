@@ -7,7 +7,7 @@ void OUTPUTTEXT(const char* s)
 {
 	while (*s)
 	{
-		OUTCHAR(s++);
+		OUTCHAR(*s++);
 	}
 }
 void PRINTRAX(QWORD x, BYTE s)
@@ -20,4 +20,21 @@ void PRINTRAX(QWORD x, BYTE s)
 		x >>= 4;
 	}
 	OUTPUTTEXT(buf);
+}
+void OUTPUTWORD(QWORD x)
+{
+	if (x)
+	{
+		char buf[33];
+		buf[32] = 0;
+		DWORD idx = 32;
+		while (x)
+		{
+			buf[--idx] = (x % 10) + '0';
+			x /= 10;
+		}
+		OUTPUTTEXT(buf + idx);
+		return;
+	}
+	OUTCHAR('0');
 }

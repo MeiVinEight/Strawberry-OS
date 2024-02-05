@@ -4,11 +4,14 @@
 #include <intrinsic.h>
 #include <types.h>
 #include <interrupt/8259A.h>
+#include <interrupt/apic.h>
 
 
 CODEDECL const char MSG0100[] = "CONSTRUCT IDT";
 CODEDECL const char MSG0101[] = "SET IDT=";
 
+CODEDECL void (*interrupt_eoi)();
+CODEDECL DWORD USEAPIC = 0;
 CODEDECL INTERRUPT64 IDT[256];
 CODEDECL BYTE ISR[256][9];
 CODEDECL void (*(INTERRUPT_ROUTINE[256]))(INTERRUPT_STACK*);
@@ -52,7 +55,8 @@ CODEDECL const BYTE __isr[] =
 void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
-	eoi_8259A(id);
+	// eoi_8259A(id);
+	interrupt_eoi();
 	if (INTERRUPT_ROUTINE[id])
 	{
 		INTERRUPT_ROUTINE[id](stack);
@@ -151,7 +155,15 @@ void setup_interrupt()
 	}
 
 	// Setup interrupt controller
-	setup_8259A();
+	if (check_apic())
+	{
+		setup_apic();
+		USEAPIC = 1;
+	}
+	else
+	{
+		setup_8259A();
+	}
 
 	// Calculate RVA from __isr+0x1B to __isr_common
 	QWORD rva = (QWORD)(__isr + 0x1B);
