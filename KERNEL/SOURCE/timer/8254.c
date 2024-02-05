@@ -50,10 +50,10 @@ void setup_8254(DWORD rate)
 	// 1 1: lb/hb
 	// 0 1 1: square wave generator
 	// 0: 16-bit binary
-	__outbyte(0x43, 0x36);
+	__outbyte(PIT_CMD, 0x36);
 	BYTE l = (divider >> 0) & 0xFF;
 	BYTE h = (divider >> 8) & 0xFF;
-	__outbyte(0x40, l);
-	__outbyte(0x40, h);
+	__outbyte(PIT0_DATA, l);
+	__outbyte(PIT0_DATA, h);
 	// __sti();
 }

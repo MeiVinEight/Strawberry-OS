@@ -8,11 +8,6 @@ CODEDECL const char OSNAME[] = "Strawberry-OS\n";
 CODEDECL const char OK[] = "OK\n";
 CODEDECL const char MSG0000[] = "SET RSP=";
 
-void setbyte(QWORD rcx, BYTE al)
-{
-	*((BYTE *) rcx) = al;
-}
-
 void _DllMainCRTStartup()
 {
 	__setrsp(0x00080000);

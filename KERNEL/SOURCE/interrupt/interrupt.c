@@ -10,7 +10,7 @@
 CODEDECL const char MSG0100[] = "CONSTRUCT IDT";
 CODEDECL const char MSG0101[] = "SET IDT=";
 
-CODEDECL void (*interrupt_eoi)();
+CODEDECL void (*interrupt_eoi)(BYTE);
 CODEDECL DWORD USEAPIC = 0;
 CODEDECL INTERRUPT64 IDT[256];
 CODEDECL BYTE ISR[256][9];
@@ -55,8 +55,7 @@ CODEDECL const BYTE __isr[] =
 void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
-	// eoi_8259A(id);
-	interrupt_eoi();
+	interrupt_eoi(id);
 	if (INTERRUPT_ROUTINE[id])
 	{
 		INTERRUPT_ROUTINE[id](stack);
@@ -150,8 +149,6 @@ void setup_interrupt()
 	{
 		IDT[i].S = 0x08;
 		IDT[i].TYPE = 0x0E;
-		// Init all vectors to null
-		register_interrupt(i, 0);
 	}
 
 	// Setup interrupt controller
