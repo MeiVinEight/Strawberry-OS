@@ -1,9 +1,0 @@
-﻿  Microsoft (R) C/C++ Optimizing Compiler Version 19.39.33321 for x64
-  Copyright (C) Microsoft Corporation.  All rights reserved.
-  cl /c /O1 /GS- /Fo"V:\VM\Strawberry-OS\.vs\KERNEL\.compile\\" /Fd"V:\VM\Strawberry-OS\.vs\KERNEL\.compile\vc143.pdb" ..\..\KERNEL\SOURCE\kernel.c
-  kernel.c
-  Microsoft (R) Incremental Linker Version 14.39.33321.0
-  Copyright (C) Microsoft Corporation.  All rights reserved.
-  "/OUT:V:\VM\Strawberry-OS\KERNEL\KERNEL.DLL" /INCREMENTAL:NO /NODEFAULTLIB /SUBSYSTEM:CONSOLE /FIXED /ALIGN:16 /DLL "V:\VM\Strawberry-OS\.vs\KERNEL\.compile\kernel.obj" 
-LINK : warning LNK4108: /ALIGN specified without /DRIVER; image may not run
-  KERNEL.vcxproj -> V:\VM\Strawberry-OS\KERNEL\KERNEL.DLL
