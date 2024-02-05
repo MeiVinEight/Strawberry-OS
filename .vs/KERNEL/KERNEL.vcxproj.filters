@@ -7,10 +7,84 @@
     <Filter Include="SOURCE">
       <UniqueIdentifier>{cdf4dcbe-4f90-4f0d-9cd2-cd4a077e07a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\console">
+      <UniqueIdentifier>{ed607b0e-86b3-4a22-9a79-7306edd32ac8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\console">
+      <UniqueIdentifier>{75738f5b-87d8-4632-9fe5-e8cebc482617}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HEADER\interrupt">
+      <UniqueIdentifier>{cf5a94dc-0964-4cdb-b124-56453ffc58ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\interrupt">
+      <UniqueIdentifier>{4f46e7c5-45b7-48da-adf4-66322f1b475e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HEADER\timer">
+      <UniqueIdentifier>{354908b9-846f-4dd8-8915-0d2da1129a35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\timer">
+      <UniqueIdentifier>{59b89b5a-5fdb-4d3c-ab5f-88f726716bf7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c">
       <Filter>SOURCE</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\vga_screen.c">
+      <Filter>SOURCE\console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\scroll.c">
+      <Filter>SOURCE\console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c">
+      <Filter>SOURCE\interrupt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c">
+      <Filter>SOURCE\console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c">
+      <Filter>SOURCE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c">
+      <Filter>SOURCE\interrupt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c">
+      <Filter>SOURCE\timer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c">
+      <Filter>SOURCE\timer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c">
+      <Filter>SOURCE\interrupt</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\KERNEL\HEADER\types.h">
+      <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\console\console.h">
+      <Filter>HEADER\console</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\declspec.h">
+      <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h">
+      <Filter>HEADER\interrupt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h">
+      <Filter>HEADER\interrupt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h">
+      <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h">
+      <Filter>HEADER\timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h">
+      <Filter>HEADER\timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h">
+      <Filter>HEADER\interrupt</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

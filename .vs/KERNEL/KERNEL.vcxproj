@@ -86,11 +86,21 @@
     <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
     <TargetExt>.DLL</TargetExt>
+    <IncludePath />
+    <ExternalIncludePath />
+    <LinkIncremental>false</LinkIncremental>
+    <IgnoreImportLibrary />
+    <GenerateManifest />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
     <TargetExt>.DLL</TargetExt>
+    <IncludePath />
+    <ExternalIncludePath />
+    <LinkIncremental>false</LinkIncremental>
+    <IgnoreImportLibrary />
+    <GenerateManifest />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
@@ -130,8 +140,7 @@
       <TreatWarningAsError />
       <DiagnosticsFormat />
       <Optimization>MinSpace</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <OmitFramePointers />
@@ -182,11 +191,54 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
+      <IncrementalLinkDatabaseFile />
+      <SuppressStartupBanner />
+      <RegisterOutput />
+      <PerUserRedirection />
+      <AdditionalDependencies />
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ManifestFile />
+      <AllowIsolation />
+      <EnableUAC />
+      <UACExecutionLevel />
+      <UACUIAccess />
+      <ProgramDatabaseFile />
+      <GenerateMapFile />
+      <MapExports />
+      <SwapRunFromCD />
+      <SwapRunFromNET />
+      <Driver />
+      <ProfileGuidedDatabase />
+      <LinkTimeCodeGenerationObjectFile />
+      <IgnoreEmbeddedIDL />
+      <TypeLibraryResourceID />
+      <NoEntryPoint />
+      <SetChecksum />
+      <BaseAddress>0</BaseAddress>
+      <RandomizedBaseAddress />
+      <FixedBaseAddress>true</FixedBaseAddress>
+      <DataExecutionPrevention />
+      <TurnOffAssemblyGeneration />
+      <ImportLibrary />
+      <MergeSections>.text=TEXT</MergeSections>
+      <TargetMachine />
+      <Profile />
+      <CLRImageType />
+      <LinkErrorReporting />
+      <SectionAlignment>16</SectionAlignment>
     </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies />
+    </ProjectReference>
+    <ProjectReference>
+      <UseLibraryDependencyInputs />
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -210,8 +262,7 @@
       <TreatWarningAsError />
       <DiagnosticsFormat />
       <Optimization>MinSpace</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed />
       <OmitFramePointers />
       <EnableFiberSafeOptimizations />
@@ -261,13 +312,60 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>
+      </EnableCOMDATFolding>
+      <OptimizeReferences>
+      </OptimizeReferences>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
+      <IncrementalLinkDatabaseFile />
+      <SuppressStartupBanner />
+      <RegisterOutput />
+      <PerUserRedirection />
+      <AdditionalDependencies />
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <ManifestFile />
+      <AllowIsolation />
+      <EnableUAC />
+      <UACExecutionLevel />
+      <UACUIAccess />
+      <ProgramDatabaseFile />
+      <GenerateMapFile />
+      <MapExports />
+      <SwapRunFromCD />
+      <SwapRunFromNET />
+      <Driver />
+      <ProfileGuidedDatabase />
+      <LinkTimeCodeGeneration />
+      <LinkTimeCodeGenerationObjectFile />
+      <IgnoreEmbeddedIDL />
+      <TypeLibraryResourceID />
+      <NoEntryPoint />
+      <SetChecksum />
+      <BaseAddress>0</BaseAddress>
+      <RandomizedBaseAddress />
+      <FixedBaseAddress>true</FixedBaseAddress>
+      <DataExecutionPrevention />
+      <TurnOffAssemblyGeneration />
+      <ImportLibrary />
+      <MergeSections>.text=TEXT</MergeSections>
+      <TargetMachine />
+      <Profile />
+      <CLRImageType />
+      <LinkErrorReporting />
+      <SectionAlignment>16</SectionAlignment>
+      <ImageHasSafeExceptionHandlers />
     </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies />
+    </ProjectReference>
+    <ProjectReference>
+      <UseLibraryDependencyInputs />
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -287,8 +385,7 @@
       <TreatWarningAsError />
       <DiagnosticsFormat />
       <Optimization>MinSpace</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <EnableFiberSafeOptimizations />
@@ -338,6 +435,7 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -376,6 +474,8 @@
       <CLRImageType />
       <LinkErrorReporting />
       <SectionAlignment>16</SectionAlignment>
+      <MergeSections>.text=TEXT</MergeSections>
+      <BaseAddress>0</BaseAddress>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -406,8 +506,7 @@
       <TreatWarningAsError />
       <DiagnosticsFormat />
       <Optimization>MinSpace</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed />
       <EnableFiberSafeOptimizations />
       <WholeProgramOptimization />
@@ -456,6 +555,7 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -499,6 +599,8 @@
       <CLRImageType />
       <LinkErrorReporting />
       <SectionAlignment>16</SectionAlignment>
+      <MergeSections>.text=TEXT</MergeSections>
+      <BaseAddress>0</BaseAddress>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -508,7 +610,27 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\scroll.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\console\vga_screen.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
