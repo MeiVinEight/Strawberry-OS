@@ -29,7 +29,7 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	;1. Set GDT at 0000:0420
+	;1. Set GDT at 0000:0500
 	;GDT[0] = 0x0000000000000000 RSV
 	;GDT[1] = 0x0020980000000000 CODE
 	;GDT[2] = 0x0000920000000000 DATA
@@ -38,7 +38,7 @@ CODE SEGMENT
 	DB 66H
 	XOR CX, CX
 	MOV DS, AX
-	MOV SI, 0420H
+	MOV SI, 0500H
 	;GDT[0]
 	DB 66H
 	MOV [SI+00H], AX
@@ -129,7 +129,7 @@ CODE SEGMENT
 	PUSH CX; GDT physical address high 32 bit
 
 	DB 66H
-	MOV SI, 0420H
+	MOV SI, 0500H
 	DW 00H
 	DB 66H
 	PUSH SI; GDT physical address low 32 bit
