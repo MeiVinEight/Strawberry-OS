@@ -232,20 +232,59 @@ BIOSAPI const char ERR02[] = "DISK READ ERROR\n";
 BIOSAPI const char ERR03[] = "NO NTFS SYSTEM PART\n";
 BIOSAPI const char ERR04[] = "NO 80 DATA RUN LIST\n";
 BIOSAPI const char ERR05[] = "NO KERNEL.DLL\n";
+BIOSAPI const QWORD KERNEL_PHY = 0x01000000;
+BIOSAPI const QWORD KERNEL_LNR = 0xFFFFFFFFFF000000ULL;
 
 void mainCRTStartup()
 {
+	QWORD(*PAGE)[512] = (QWORD(*)[512]) 0x100000;
+	memset(PAGE, 0, 0x100000);
+	QWORD* L1 = (QWORD*)PAGE[0];
+	L1[0] = (QWORD)PAGE[1] | 3;
+	QWORD* L2 = PAGE[1];
+	L2[0] = (QWORD)PAGE[2] | 3;
+	QWORD* L31 = PAGE[2];
+
+	L1[511] = (QWORD)PAGE[3] | 3;
+	L2 = PAGE[3];
+	L2[511] = (QWORD)PAGE[4] | 3;
+	QWORD* L32 = PAGE[4];
+
+	DWORD idx1 = 0;
+	DWORD idx2 = 0x1F8;
+	QWORD SYSTEM = 0x00000183;
+	QWORD KERNEL = 0x01000183;
+	while (idx1 < 8)
+	{
+		L31[idx1] = SYSTEM;
+		L32[idx2] = KERNEL;
+		idx1++;
+		idx2++;
+		SYSTEM += 0x00200000;
+		KERNEL += 0x00200000;
+	}
+	__writecr3(PAGE);
+	memset((void *)0x00200000, 0, 0x00E00000);
+	memset((void *)KERNEL_LNR, 0, 0x01000000);
+
 	// OUTPUTTEXT("STRAWBERRY OS\n");
 	if (!find_pci())
 	{
 		// DOS HEADER
-		QWORD base = 0xFFFF800000000000ULL;
+		QWORD base = KERNEL_LNR;
 		// NT HEADER = ImageBase + [DOS_HEADER + 0x3C]
 		QWORD NTHeader = base + *((DWORD *) (base + 0x3C));
 		// [NT_HEADER + 0x30] is the absolute liner address of image base
 		*((QWORD *) (NTHeader + 0x30)) = base;
 		// ImageBase + [NT_HEADER + 0x28] is the address of entry point
-		((void (*)()) (base + *((DWORD *)(NTHeader + 0x28))))();
+		BYTE call[24] =
+		{
+			0x48, 0xBC, 0xD8, 0xFF, 0xFF, 0xFF, // MOV RSP, FFFFFFFFFFFFFFD8
+			0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00, // JMP DWORD PTR [00000000]
+		};
+		*((QWORD *) (call + 16)) = (QWORD)(base + *((DWORD*)(NTHeader + 0x28)));
+		((void (*)())call)();
 	}
 	else
 	{
@@ -675,7 +714,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// Previous run list LBA
 	QWORD RUNLIST = BPB.hidden;
 	// Physical address of dest, kernel area
-	BYTE* dst = (BYTE *) 0x00200000ULL;
+	BYTE* dst = (BYTE *) KERNEL_PHY;
 	while (*attribute)
 	{
 		// Compressed byte

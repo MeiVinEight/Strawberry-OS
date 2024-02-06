@@ -8,7 +8,7 @@
 
 
 CODEDECL const char MSG0100[] = "CONSTRUCT IDT";
-CODEDECL const char MSG0101[] = "SET IDT=";
+CODEDECL const char MSG0101[] = "SET IDTR ";
 
 CODEDECL void (*interrupt_eoi)(BYTE);
 CODEDECL DWORD USEAPIC = 0;
@@ -182,7 +182,7 @@ void setup_interrupt()
 	*((QWORD*)&idtr.Base) = 0;
 	__sidt(&idtr);
 	char separate[2] = { ':', 0 };
-	OUTPUTTEXT("GDTR=");
+	OUTPUTTEXT(MSG0101);
 	PRINTRAX(idtr.Limit, 4);
 	OUTPUTTEXT(separate);
 	PRINTRAX(*((QWORD*)&idtr.Base), 16);
