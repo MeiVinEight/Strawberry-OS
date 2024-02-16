@@ -34,6 +34,9 @@
 #define HBA_PxIS_TFES   (1 << 30)       /* TFES - Task File Error Status */
 
 
+#define PAGE_COUNT (15 << 8)
+
+
 #define SECTION "TEXT"
 #define BIOSAPI __declspec(allocate(SECTION))
 #pragma section(SECTION, read, write)
@@ -210,7 +213,7 @@ void OUTPUTTEXT(const char *);
 DWORD find_pci();
 DWORD pci_device(DWORD, DWORD);
 DWORD ahci_controller_setup(DWORD);
-void* pci_enable_mmio(DWORD, DWORD, DWORD);
+void* pci_enable_mmio(DWORD, DWORD);
 DWORD check_type(HBA_PORT*);
 DWORD port_rebase(HBA_PORT*);
 DWORD LoadingSATA(HBA_PORT*);
@@ -232,23 +235,70 @@ BIOSAPI const char ERR02[] = "DISK READ ERROR\n";
 BIOSAPI const char ERR03[] = "NO NTFS SYSTEM PART\n";
 BIOSAPI const char ERR04[] = "NO 80 DATA RUN LIST\n";
 BIOSAPI const char ERR05[] = "NO KERNEL.DLL\n";
+BIOSAPI const char ERR06[] = "NO EMPTY PAGE\n";
 BIOSAPI const QWORD KERNEL_PHY = 0x01000000;
 BIOSAPI const QWORD KERNEL_LNR = 0xFFFFFFFFFF000000ULL;
+BIOSAPI BYTE PTM[PAGE_COUNT >> 3] = {0};
+BIOSAPI QWORD(*const PAGING)[512] = (QWORD(*)[512]) 0x100000;
 
+QWORD empty_page()
+{
+	for (DWORD i = 0; i < PAGE_COUNT; i++)
+	{
+		if (!(PTM[i >> 3] & (1 << (i & 7))))
+		{
+			PTM[i >> 3] |= (1 << (i & 7));
+			return (QWORD) PAGING[i];
+		}
+	}
+	return 0;
+}
+QWORD *page_entry(QWORD *PT, WORD idx)
+{
+	if (PT && (idx < 512))
+	{
+		if (!(PT[idx] & 1))
+		{
+			QWORD l = empty_page();
+			if (!l)
+			{
+				OUTPUTTEXT(ERR06);
+				while (1) __halt();
+			}
+			memset((QWORD *) l, 0, 4096);
+			PT[idx] = l | 3;
+		}
+		return (QWORD *) (PT[idx] & ~0xFFF);
+	}
+	return 0;
+}
+void linear_mapping(QWORD addr)
+{
+	WORD idx0 = (addr >> 39) & 0x1FF;
+	WORD idx1 = (addr >> 30) & 0x1FF;
+	WORD idx2 = (addr >> 21) & 0x1FF;
+	QWORD *L2 = page_entry(page_entry((QWORD *) __readcr3(), idx0), idx1);
+	if (L2)
+	{
+		L2[idx2] = ((addr >> 21) << 21) | 0x83;
+	}
+}
 void mainCRTStartup()
 {
-	QWORD(*PAGE)[512] = (QWORD(*)[512]) 0x100000;
-	memset(PAGE, 0, 0x100000);
-	QWORD* L1 = (QWORD*)PAGE[0];
-	L1[0] = (QWORD)PAGE[1] | 3;
-	QWORD* L2 = PAGE[1];
-	L2[0] = (QWORD)PAGE[2] | 3;
-	QWORD* L31 = PAGE[2];
+	// Clear screen
+	memset((void *) 0x000B8000, 0, 4000);
+	// Clear 1M Memory
+	memset(PAGING, 0, 0x100000);
+	QWORD* L1 = (QWORD*) PAGING[0];
+	L1[0] = (QWORD) PAGING[1] | 3;
+	QWORD* L2 = PAGING[1];
+	L2[0] = (QWORD) PAGING[2] | 3;
+	QWORD* L31 = PAGING[2];
 
-	L1[511] = (QWORD)PAGE[3] | 3;
-	L2 = PAGE[3];
-	L2[511] = (QWORD)PAGE[4] | 3;
-	QWORD* L32 = PAGE[4];
+	L1[511] = (QWORD) PAGING[3] | 3;
+	L2 = PAGING[3];
+	L2[511] = (QWORD) PAGING[4] | 3;
+	QWORD* L32 = PAGING[4];
 
 	DWORD idx1 = 0;
 	DWORD idx2 = 0x1F8;
@@ -263,13 +313,23 @@ void mainCRTStartup()
 		SYSTEM += 0x00200000;
 		KERNEL += 0x00200000;
 	}
-	__writecr3(PAGE);
+	__writecr3(PAGING);
 	memset((void *)0x00200000, 0, 0x00E00000);
 	memset((void *)KERNEL_LNR, 0, 0x01000000);
+	PTM[0] = 0x1F;
 
 	// OUTPUTTEXT("STRAWBERRY OS\n");
 	if (!find_pci())
 	{
+		// Clear screen
+		memset((void *) 0x000B8000, 0, 4000);
+		// Clear other memory mapping
+		memset(((BYTE *) PAGING[0]) + (0x001 << 3), 0, 510 * 8);
+		memset(((BYTE *) PAGING[1]) + (0x001 << 3), 0, 511 * 8);
+		memset(((BYTE *) PAGING[2]) + (0x008 << 3), 0, 504 * 8);
+		memset(((BYTE *) PAGING[3]) + (0x000 << 3), 0, 511 * 8);
+		memset(((BYTE *) PAGING[4]) + (0x000 << 3), 0, 504 * 8);
+		memset((PAGING + 5), 0, 0x01000000 - (QWORD) (PAGING + 5));
 		// DOS HEADER
 		QWORD base = KERNEL_LNR;
 		// NT HEADER = ImageBase + [DOS_HEADER + 0x3C]
@@ -384,7 +444,7 @@ DWORD pci_device(DWORD cmd, DWORD id)
 DWORD ahci_controller_setup(DWORD dvc)
 {
 	// Config MMIO
-	void* iobase = pci_enable_mmio(dvc, PCI_BASE_ADDRESS_5, 0x13000);
+	void* iobase = pci_enable_mmio(dvc, PCI_BASE_ADDRESS_5);
 	if (!iobase)
 		return 1;
 
@@ -426,7 +486,7 @@ DWORD ahci_controller_setup(DWORD dvc)
 
 	return find;
 }
-void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
+void* pci_enable_mmio(DWORD device, DWORD addr)
 {
 	// Read BAR
 	__outdword(0x0CF8, device + addr);
@@ -437,9 +497,11 @@ void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
 		OUTPUTTEXT(ERR00);
 		return 0;
 	}
+	bar &= ~0xF;
+	linear_mapping(bar);
 	// Use base as mmio address, write to BAR
-	__outdword(0x0CF8, device + addr);
-	__outdword(0x0CFC, base | (bar & 0xF));
+	// __outdword(0x0CF8, device + addr);
+	// __outdword(0x0CFC, base | (bar & 0xF));
 	// Read Command register
 	__outdword(0x0CF8, device + PCI_COMMAND);
 	WORD cmd = __inword(0x0CFC);
@@ -448,7 +510,8 @@ void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
 	// Write to command register
 	__outdword(0x0CF8, device + PCI_COMMAND);
 	__outword(0x0CFC, cmd);
-	return (void*)(QWORD)(base);
+	// return (void*)(QWORD)(base);
+	return (void *) (QWORD) bar;
 }
 DWORD check_type(HBA_PORT* port)
 {

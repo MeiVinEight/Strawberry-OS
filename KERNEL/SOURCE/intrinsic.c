@@ -1,23 +1,27 @@
 #include <declspec.h>
 #include <types.h>
 
+/*
 CODEDECL const BYTE __setrsp[] =
 {
 	0x58,             // POP RAX
 	0x48, 0x8B, 0xE1, // MOV RSP, RCX
 	0x48, 0xFF, 0xE0, // JMP RAX
 };
+*/
 CODEDECL const BYTE __getrsp[] =
 {
 	0x59,             // POP RAX
 	0x48, 0x8B, 0xC4, // MOV RAX, RSP
 	0x48, 0xFF, 0xE1, // JMP RAX
 };
+/*
 CODEDECL const BYTE __cli[] =
 {
 	0xFA, // CLI
 	0xC3, // RET
 };
+*/
 CODEDECL const BYTE __sti[] =
 {
 	0xFB, // STI

@@ -102,12 +102,7 @@ void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*))
 void __FAULT(INTERRUPT_STACK* stack)
 {
 	char buf[5] = { '#', 'G', 'P', '\n', 0 };
-	if (stack->INT == 0x0E)
-	{
-		buf[1] = 'P';
-		buf[2] = 'F';
-	}
-	else if (stack->INT == 0x08)
+	if (stack->INT == 0x08)
 	{
 		buf[1] = 'D';
 		buf[2] = 'F';
@@ -129,15 +124,6 @@ void __FAULT(INTERRUPT_STACK* stack)
 	OUTPUTTEXT(buf);
 	PRINTRAX(stack->RIP, 16);
 	LINEFEED();
-	if (stack->INT == 0x0E)
-	{
-		buf[0] = 'C';
-		buf[1] = 'R';
-		buf[2] = '2';
-		OUTPUTTEXT(buf);
-		PRINTRAX(__readcr2(), 16);
-		LINEFEED();
-	}
 	while (1) __halt();
 }
 void setup_interrupt()
@@ -169,7 +155,6 @@ void setup_interrupt()
 	// Interrupt exceptions
 	register_interrupt(0x08, __FAULT);
 	register_interrupt(0x0D, __FAULT);
-	register_interrupt(0x0E, __FAULT);
 
 	// lidt
 	IDTR64 idtr;

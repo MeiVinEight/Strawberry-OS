@@ -3,6 +3,7 @@
 #include <interrupt/interrupt.h>
 #include <intrinsic.h>
 #include <timer/timer.h>
+#include <memory/page.h>
 
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
@@ -40,6 +41,7 @@ void _DllMainCRTStartup(void)
 
 	setup_interrupt();
 	setup_timer();
+	setup_paging();
 
 	OUTPUTTEXT(OK);
 	while (1) __halt();

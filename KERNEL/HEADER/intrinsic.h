@@ -9,7 +9,9 @@ void __outbyte(DWORD, BYTE);
 void __lidt(void *);
 void __sidt(void *);
 QWORD __readcr2(void);
-void __cpuid(int *, int);
+QWORD __readcr3(void);
+void __cpuid(int*, int);
+void __cpuidex(int *, int, int);
 QWORD __readmsr(DWORD);
 void __writemsr(DWORD, QWORD);
 
