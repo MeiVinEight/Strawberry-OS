@@ -618,6 +618,8 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\memory\page.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\system.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c" />
   </ItemGroup>
@@ -628,6 +630,8 @@
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\memory\page.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\system.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\types.h" />
