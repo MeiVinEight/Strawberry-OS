@@ -34,6 +34,9 @@
 #define HBA_PxIS_TFES   (1 << 30)       /* TFES - Task File Error Status */
 
 
+#define PAGE_COUNT (15 << 8)
+
+
 #define SECTION "TEXT"
 #define BIOSAPI __declspec(allocate(SECTION))
 #pragma section(SECTION, read, write)
@@ -210,7 +213,7 @@ void OUTPUTTEXT(const char *);
 DWORD find_pci();
 DWORD pci_device(DWORD, DWORD);
 DWORD ahci_controller_setup(DWORD);
-void* pci_enable_mmio(DWORD, DWORD, DWORD);
+void* pci_enable_mmio(DWORD, DWORD);
 DWORD check_type(HBA_PORT*);
 DWORD port_rebase(HBA_PORT*);
 DWORD LoadingSATA(HBA_PORT*);
@@ -220,32 +223,128 @@ void stop_cmd(HBA_PORT*);
 * Cursor pos in 80x25 mode
 */
 BIOSAPI DWORD CURSOR = 0;
-// DISK GUID = {BE559BDA-5715-4BAB-89D3-66D22BF6A8B6}
-BIOSAPI BYTE GUID0[] = { 0xDA, 0x9B, 0x55, 0xBE, 0x15, 0x57, 0xAB, 0x4B, 0x89, 0xD3, 0x66, 0xD2, 0x2B, 0xF6, 0xA8, 0xB6 };
-// PART GUID = {986AFD81-09FF-4490-AED6-C7597A5AA827}
-BIOSAPI BYTE GUID1[] = { 0x81, 0xFD, 0x6A, 0x98, 0xFF, 0x09, 0x90, 0x44, 0xAE, 0xD6, 0xC7, 0x59, 0x7A, 0x5A, 0xA8, 0x27 };
+// DISK GUID
+BIOSAPI QWORD *GUID0 = (QWORD *) 0x00010010;
+// PART GUID
+BIOSAPI QWORD *GUID1 = (QWORD *) 0x00010020;
 // KERNEL.DLL MFT RECORD
-BIOSAPI const DWORD MFT_RECORD = 0x30;
+BIOSAPI const QWORD *MFT_RECORD = (QWORD *) 0x00010008;
 BIOSAPI const char ERR00[] = "ERR:PIO ENABLED\n";
 BIOSAPI const char ERR01[] = "AHCI LINK DOWN\n";
 BIOSAPI const char ERR02[] = "DISK READ ERROR\n";
 BIOSAPI const char ERR03[] = "NO NTFS SYSTEM PART\n";
 BIOSAPI const char ERR04[] = "NO 80 DATA RUN LIST\n";
 BIOSAPI const char ERR05[] = "NO KERNEL.DLL\n";
+BIOSAPI const char ERR06[] = "NO EMPTY PAGE\n";
+BIOSAPI const QWORD KERNEL_PHY = 0x01000000;
+BIOSAPI const QWORD KERNEL_LNR = 0xFFFFFFFFFF000000ULL;
+BIOSAPI BYTE PTM[PAGE_COUNT >> 3] = {0};
+BIOSAPI QWORD(*const PAGING)[512] = (QWORD(*)[512]) 0x100000;
 
+QWORD empty_page()
+{
+	for (DWORD i = 0; i < PAGE_COUNT; i++)
+	{
+		if (!(PTM[i >> 3] & (1 << (i & 7))))
+		{
+			PTM[i >> 3] |= (1 << (i & 7));
+			return (QWORD) PAGING[i];
+		}
+	}
+	return 0;
+}
+QWORD *page_entry(QWORD *PT, WORD idx)
+{
+	if (PT && (idx < 512))
+	{
+		if (!(PT[idx] & 1))
+		{
+			QWORD l = empty_page();
+			if (!l)
+			{
+				OUTPUTTEXT(ERR06);
+				while (1) __halt();
+			}
+			memset((QWORD *) l, 0, 4096);
+			PT[idx] = l | 3;
+		}
+		return (QWORD *) (PT[idx] & ~0xFFF);
+	}
+	return 0;
+}
+void linear_mapping(QWORD addr)
+{
+	WORD idx0 = (addr >> 39) & 0x1FF;
+	WORD idx1 = (addr >> 30) & 0x1FF;
+	WORD idx2 = (addr >> 21) & 0x1FF;
+	QWORD *L2 = page_entry(page_entry((QWORD *) __readcr3(), idx0), idx1);
+	if (L2)
+	{
+		L2[idx2] = ((addr >> 21) << 21) | 0x83;
+	}
+}
 void mainCRTStartup()
 {
+	// Clear screen
+	memset((void *) 0x000B8000, 0, 4000);
+	// Clear 1M Memory
+	memset(PAGING, 0, 0x100000);
+	QWORD* L1 = (QWORD*) PAGING[0];
+	L1[0] = (QWORD) PAGING[1] | 3;
+	QWORD* L2 = PAGING[1];
+	L2[0] = (QWORD) PAGING[2] | 3;
+	QWORD* L31 = PAGING[2];
+
+	L1[511] = (QWORD) PAGING[3] | 3;
+	L2 = PAGING[3];
+	L2[511] = (QWORD) PAGING[4] | 3;
+	QWORD* L32 = PAGING[4];
+
+	DWORD idx1 = 0;
+	DWORD idx2 = 0x1F8;
+	QWORD SYSTEM = 0x00000183;
+	QWORD KERNEL = 0x01000183;
+	while (idx1 < 8)
+	{
+		L31[idx1] = SYSTEM;
+		L32[idx2] = KERNEL;
+		idx1++;
+		idx2++;
+		SYSTEM += 0x00200000;
+		KERNEL += 0x00200000;
+	}
+	__writecr3(PAGING);
+	memset((void *)0x00200000, 0, 0x00E00000);
+	memset((void *)KERNEL_LNR, 0, 0x01000000);
+	PTM[0] = 0x1F;
+
 	// OUTPUTTEXT("STRAWBERRY OS\n");
 	if (!find_pci())
 	{
+		// Clear screen
+		memset((void *) 0x000B8000, 0, 4000);
+		// Clear other memory mapping
+		memset(((BYTE *) PAGING[0]) + (0x001 << 3), 0, 510 * 8);
+		memset(((BYTE *) PAGING[1]) + (0x001 << 3), 0, 511 * 8);
+		memset(((BYTE *) PAGING[2]) + (0x008 << 3), 0, 504 * 8);
+		memset(((BYTE *) PAGING[3]) + (0x000 << 3), 0, 511 * 8);
+		memset(((BYTE *) PAGING[4]) + (0x000 << 3), 0, 504 * 8);
+		memset((PAGING + 5), 0, 0x01000000 - (QWORD) (PAGING + 5));
 		// DOS HEADER
-		QWORD base = 0xFFFF800000000000ULL;
+		QWORD base = KERNEL_LNR;
 		// NT HEADER = ImageBase + [DOS_HEADER + 0x3C]
 		QWORD NTHeader = base + *((DWORD *) (base + 0x3C));
 		// [NT_HEADER + 0x30] is the absolute liner address of image base
 		*((QWORD *) (NTHeader + 0x30)) = base;
 		// ImageBase + [NT_HEADER + 0x28] is the address of entry point
-		((void (*)()) (base + *((DWORD *)(NTHeader + 0x28))))();
+		BYTE call[24] =
+		{
+			0x48, 0xBC, 0xD8, 0xFF, 0xFF, 0xFF, // MOV RSP, FFFFFFFFFFFFFFD8
+			0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00, // JMP DWORD PTR [00000000]
+		};
+		*((QWORD *) (call + 16)) = (QWORD)(base + *((DWORD*)(NTHeader + 0x28)));
+		((void (*)())call)();
 	}
 	else
 	{
@@ -345,7 +444,7 @@ DWORD pci_device(DWORD cmd, DWORD id)
 DWORD ahci_controller_setup(DWORD dvc)
 {
 	// Config MMIO
-	void* iobase = pci_enable_mmio(dvc, PCI_BASE_ADDRESS_5, 0x13000);
+	void* iobase = pci_enable_mmio(dvc, PCI_BASE_ADDRESS_5);
 	if (!iobase)
 		return 1;
 
@@ -387,7 +486,7 @@ DWORD ahci_controller_setup(DWORD dvc)
 
 	return find;
 }
-void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
+void* pci_enable_mmio(DWORD device, DWORD addr)
 {
 	// Read BAR
 	__outdword(0x0CF8, device + addr);
@@ -398,9 +497,11 @@ void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
 		OUTPUTTEXT(ERR00);
 		return 0;
 	}
+	bar &= ~0xF;
+	linear_mapping(bar);
 	// Use base as mmio address, write to BAR
-	__outdword(0x0CF8, device + addr);
-	__outdword(0x0CFC, base | (bar & 0xF));
+	// __outdword(0x0CF8, device + addr);
+	// __outdword(0x0CFC, base | (bar & 0xF));
 	// Read Command register
 	__outdword(0x0CF8, device + PCI_COMMAND);
 	WORD cmd = __inword(0x0CFC);
@@ -409,7 +510,8 @@ void* pci_enable_mmio(DWORD device, DWORD addr, DWORD base)
 	// Write to command register
 	__outdword(0x0CF8, device + PCI_COMMAND);
 	__outword(0x0CFC, cmd);
-	return (void*)(QWORD)(base);
+	// return (void*)(QWORD)(base);
+	return (void *) (QWORD) bar;
 }
 DWORD check_type(HBA_PORT* port)
 {
@@ -603,8 +705,8 @@ DWORD LoadingSATA(HBA_PORT* port)
 	}
 
 	// Assume GPT and check DISK GUID
-	QWORD* guid = (QWORD*)(page + 0x38);
-	if (guid[0] != ((QWORD*)GUID0)[0] && guid[1] != ((QWORD*)GUID0)[1])
+	QWORD *guid = (QWORD *) (page + 0x38);
+	if (guid[0] != GUID0[0] && guid[1] != GUID0[1])
 	{
 		return 1;
 	}
@@ -624,7 +726,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 		if (!(partGUID[0] | partGUID[1]))
 			break;
 
-		if (partGUID[0] == ((QWORD*)GUID1)[0] && partGUID[1] == ((QWORD*)GUID1)[1])
+		if (partGUID[0] == GUID1[0] && partGUID[1] == GUID1[1])
 			break;
 	}
 	if (!(((QWORD*)(partEntry + 0x10))[0] | ((QWORD*)(partEntry + 0x10))[1]))
@@ -647,7 +749,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// $MFT LBA
 	QWORD mftsector = BPB.hidden + (BPB.MFT * BPB.cluster);
 	// Read 2 sector file record of KERNEL.DLL file
-	if (AHCIIO(port, mftsector + ((QWORD) MFT_RECORD << 1), 2, (void*)page))
+	if (AHCIIO(port, mftsector + (*MFT_RECORD << 1), 2, (void *) page))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -675,7 +777,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// Previous run list LBA
 	QWORD RUNLIST = BPB.hidden;
 	// Physical address of dest, kernel area
-	BYTE* dst = (BYTE *) 0x00200000ULL;
+	BYTE* dst = (BYTE *) KERNEL_PHY;
 	while (*attribute)
 	{
 		// Compressed byte

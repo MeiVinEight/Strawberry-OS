@@ -1,5 +1,15 @@
 CODE SEGMENT
 	START PROC
+
+	JMP SHORT STBRBOOT
+	ALIGN 08H
+	DQ 2FH
+	;DISK GUID = {BE559BDA-5715-4BAB-89D3-66D22BF6A8B6}
+	DQ 4BAB5715BE559BDAH, 0B6A8F62BD266D389H
+	;PART GUID = {6A655705-B249-4C8C-A527-AEAAC113B6D8}
+	DQ 4C8CB2496A655705H, 0D8B613C1AAAE27A5H
+
+	STBRBOOT:
 	;Init segment registers to 1000H
 	MOV AX, 1000H
 	MOV DS, AX
@@ -7,6 +17,38 @@ CODE SEGMENT
 	;Output message
 	;MOV SI, OFFSET OSNAME
 	;INT 21H
+
+	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+	;Detecting Memory
+	PUSH ES
+	DB 66H
+	MOV DX, 4150H
+	DW 534DH
+	DB 66H
+	XOR BX, BX
+	MOV DI, 0608H
+	LEA SI, [DI-8]
+	MOV ES, BX
+
+	DETECTING_MEMORY:
+	DB 66H
+	MOV AX, 0E820H
+	DW 00H
+	DB 66H
+	XOR CX, CX
+	MOV CL, 18H
+	INT 15H
+	DB 66H
+	TEST BX, BX
+	JZ DETECTING_COMPLETE
+
+	ADD DI, 18H
+	JMP DETECTING_MEMORY
+
+	DETECTING_COMPLETE:
+	MOV ES:[SI], DI
+	POP ES
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -29,7 +71,7 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	;1. Set GDT at 0000:0420
+	;1. Set GDT at 0000:0500
 	;GDT[0] = 0x0000000000000000 RSV
 	;GDT[1] = 0x0020980000000000 CODE
 	;GDT[2] = 0x0000920000000000 DATA
@@ -38,7 +80,7 @@ CODE SEGMENT
 	DB 66H
 	XOR CX, CX
 	MOV DS, AX
-	MOV SI, 0420H
+	MOV SI, 0500H
 	;GDT[0]
 	DB 66H
 	MOV [SI+00H], AX
@@ -75,24 +117,16 @@ CODE SEGMENT
 	;Point to 2 2-level page table
 	MOV DI, 1000H
 	MOV WORD PTR [DI+0000H], 2003H; 0x00002000, 1-LVL EBTRY 0x000
-	MOV WORD PTR [DI+0800H], 3003H; 0x00003000, 1-LVL ENTRY 0x100
-	;2-level page table(1) has 1 entry, mapping 0x0000000000000000
+	;2-level page table has 1 entry, mapping 0x0000000000000000
 	;Point to 3-level page table
 	MOV DI, 2000H
-	MOV WORD PTR [DI+0000H], 4003H; 0x00004000
-	;2-level page table(2) has 1 entry, mapping 0xFFFF800000000000
-	;Point to 3-level page table
+	MOV WORD PTR [DI+0000H], 3003H; 0x00003000
+	;3-level page table has 1 entry, mapping 0x0000000000000000
+	;Point to 0x00000000
 	MOV DI, 3000H
-	MOV WORD PTR [DI+0000H], 5003H; 0x00004000
+	MOV WORD PTR [DI+0000H], 0183H; 0x00000000, Global Page
 	;3-level page table(1) has 1 entry, mapping 0x0000000000000000
 	;Point to 0x00000000
-	MOV DI, 4000H
-	MOV WORD PTR [DI+0000H], 0183H; 0x00000000, Global Page
-	;3-level page table(2) has 1 entry, mapping 0xFFFF800000000000
-	;Point to 0x00200000
-	MOV DI, 5000H
-	MOV WORD PTR [DI+0000H], 0183H; 0x00200000, Global Page
-	MOV WORD PTR [DI+0002H], 0020H
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -137,7 +171,7 @@ CODE SEGMENT
 	PUSH CX; GDT physical address high 32 bit
 
 	DB 66H
-	MOV SI, 0420H
+	MOV SI, 0500H
 	DW 00H
 	DB 66H
 	PUSH SI; GDT physical address low 32 bit
@@ -189,7 +223,8 @@ CODE SEGMENT
 	;10. JMP FAR 0008:00010200
 	DB 66H, 0EAH
 	JMPENTRY:
-	DD 00010100H
+	DW OFFSET LONGMODE
+	DW 0001H
 	DW 0008H
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -199,7 +234,7 @@ CODE SEGMENT
 	START ENDP
 	;OSNAME DB 'STRAWBERRY OS', 0
 
-	ORG 100H
+	ALIGN 10H
 	LONGMODE PROC
 	SELFSPIN:
 	JMP SELFSPIN

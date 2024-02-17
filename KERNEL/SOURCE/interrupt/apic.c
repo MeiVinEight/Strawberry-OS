@@ -7,6 +7,7 @@
 #include <interrupt/interrupt.h>
 #include <timer/8254.h>
 #include <timer/timer.h>
+#include <system.h>
 
 #define CPUID_FEAT_EDX_APIC (1 << 9)
 
@@ -61,13 +62,14 @@
 CODEDECL const char MSG0400[] = "SETUP APIC\n";
 CODEDECL const char MSG0401[] = "SETUP APIC TIMER ";
 CODEDECL const char MSG0402[] = "APIC TIMER FREQUENCY=";
-CODEDECL const QWORD APIC_BASE_ADDRESS = 0x00100000;
+CODEDECL QWORD APIC_BASE_ADDRESS = 0;
 CODEDECL DWORD (*APIC_REGISTERS)[4];
 
 void set_apic_address(QWORD adrs)
 {
 	DWORD eax = (adrs & 0xFFFFF000);
 	__writemsr(IA32_APIC_BASE_MSR, eax);
+	APIC_REGISTERS = (DWORD(*)[4]) adrs;
 }
 void eoi_apic(BYTE id)
 {
@@ -86,8 +88,7 @@ void setup_apic()
 	disable_8259A();
 
 	OUTPUTTEXT(MSG0400);
-	set_apic_address(APIC_BASE_ADDRESS);
-	APIC_REGISTERS = (DWORD (*)[4]) APIC_BASE_ADDRESS;
+	set_apic_address((QWORD) OST->APIC);
 	// APIC EOI
 	interrupt_eoi = eoi_apic;
 	// Set TPR to 0, receive all interrupts
