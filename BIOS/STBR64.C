@@ -220,12 +220,12 @@ void stop_cmd(HBA_PORT*);
 * Cursor pos in 80x25 mode
 */
 BIOSAPI DWORD CURSOR = 0;
-// DISK GUID = {BE559BDA-5715-4BAB-89D3-66D22BF6A8B6}
-BIOSAPI BYTE GUID0[] = { 0xDA, 0x9B, 0x55, 0xBE, 0x15, 0x57, 0xAB, 0x4B, 0x89, 0xD3, 0x66, 0xD2, 0x2B, 0xF6, 0xA8, 0xB6 };
-// PART GUID = {986AFD81-09FF-4490-AED6-C7597A5AA827}
-BIOSAPI BYTE GUID1[] = { 0x81, 0xFD, 0x6A, 0x98, 0xFF, 0x09, 0x90, 0x44, 0xAE, 0xD6, 0xC7, 0x59, 0x7A, 0x5A, 0xA8, 0x27 };
+// DISK GUID
+BIOSAPI QWORD *GUID0 = (QWORD *) 0x00010010;
+// PART GUID
+BIOSAPI QWORD *GUID1 = (QWORD *) 0x00010020;
 // KERNEL.DLL MFT RECORD
-BIOSAPI const DWORD MFT_RECORD = 0x30;
+BIOSAPI const QWORD *MFT_RECORD = (QWORD *) 0x00010008;
 BIOSAPI const char ERR00[] = "ERR:PIO ENABLED\n";
 BIOSAPI const char ERR01[] = "AHCI LINK DOWN\n";
 BIOSAPI const char ERR02[] = "DISK READ ERROR\n";
@@ -642,8 +642,8 @@ DWORD LoadingSATA(HBA_PORT* port)
 	}
 
 	// Assume GPT and check DISK GUID
-	QWORD* guid = (QWORD*)(page + 0x38);
-	if (guid[0] != ((QWORD*)GUID0)[0] && guid[1] != ((QWORD*)GUID0)[1])
+	QWORD *guid = (QWORD *) (page + 0x38);
+	if (guid[0] != GUID0[0] && guid[1] != GUID0[1])
 	{
 		return 1;
 	}
@@ -663,7 +663,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 		if (!(partGUID[0] | partGUID[1]))
 			break;
 
-		if (partGUID[0] == ((QWORD*)GUID1)[0] && partGUID[1] == ((QWORD*)GUID1)[1])
+		if (partGUID[0] == GUID1[0] && partGUID[1] == GUID1[1])
 			break;
 	}
 	if (!(((QWORD*)(partEntry + 0x10))[0] | ((QWORD*)(partEntry + 0x10))[1]))
@@ -686,7 +686,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// $MFT LBA
 	QWORD mftsector = BPB.hidden + (BPB.MFT * BPB.cluster);
 	// Read 2 sector file record of KERNEL.DLL file
-	if (AHCIIO(port, mftsector + ((QWORD) MFT_RECORD << 1), 2, (void*)page))
+	if (AHCIIO(port, mftsector + (*MFT_RECORD << 1), 2, (void *) page))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
