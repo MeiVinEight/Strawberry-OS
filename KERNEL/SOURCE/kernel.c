@@ -37,7 +37,7 @@ void _DllMainCRTStartup(void)
 	brand[0] = 'C';
 	brand[1] = 'P';
 	brand[2] = 'U';
-	brand[3] = ':';
+	brand[3] = ' ';
 	brand[4] = 0;
 	OUTPUTTEXT(brand);
 	memset(brand, 0, 50);
