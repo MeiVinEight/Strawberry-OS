@@ -10,6 +10,38 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+	;Detecting Memory
+	PUSH ES
+	DB 66H
+	MOV DX, 4150H
+	DW 534DH
+	DB 66H
+	XOR BX, BX
+	MOV DI, 0608H
+	LEA SI, [DI-8]
+	MOV ES, BX
+
+	DETECTING_MEMORY:
+	DB 66H
+	MOV AX, 0E820H
+	DW 00H
+	DB 66H
+	XOR CX, CX
+	MOV CL, 18H
+	INT 15H
+	DB 66H
+	TEST BX, BX
+	JZ DETECTING_COMPLETE
+
+	ADD DI, 18H
+	JMP DETECTING_MEMORY
+
+	DETECTING_COMPLETE:
+	MOV ES:[SI], DI
+	POP ES
+
+	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 	;0. Calculate PE32+ entry
 	;Read Image Base (0x00010100)
 	MOV BX, OFFSET JMPENTRY
@@ -181,7 +213,8 @@ CODE SEGMENT
 	;10. JMP FAR 0008:00010200
 	DB 66H, 0EAH
 	JMPENTRY:
-	DD 00010100H
+	DW OFFSET LONGMODE
+	DW 0001H
 	DW 0008H
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -191,7 +224,7 @@ CODE SEGMENT
 	START ENDP
 	;OSNAME DB 'STRAWBERRY OS', 0
 
-	ORG 100H
+	ALIGN 10H
 	LONGMODE PROC
 	SELFSPIN:
 	JMP SELFSPIN

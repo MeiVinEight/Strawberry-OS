@@ -5,6 +5,14 @@
 #include <timer/timer.h>
 #include <memory/page.h>
 
+typedef struct _MEMORY_REGION
+{
+	QWORD A;
+	QWORD L;
+	DWORD F;
+	DWORD X;
+} MEMORY_REGION;
+
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
 CODEDECL const char OK[] = "OK\n";
@@ -42,6 +50,20 @@ void _DllMainCRTStartup(void)
 	setup_interrupt();
 	setup_timer();
 	setup_paging();
+	MEMORY_REGION *beg = (MEMORY_REGION *) 0x00000608;
+	MEMORY_REGION *end = *((MEMORY_REGION **) 0x00000600);
+	OUTPUTTEXT("Base Address       Length             Type\n");
+	//          0000000000000000 | 0000000000000000 | 00000000
+	while (beg < end)
+	{
+		PRINTRAX(beg->A, 16);
+		OUTPUTTEXT(" | ");
+		PRINTRAX(beg->L, 16);
+		OUTPUTTEXT(" | ");
+		PRINTRAX(beg->F, 8);
+		LINEFEED();
+		beg++;
+	}
 
 	OUTPUTTEXT(OK);
 	while (1) __halt();
