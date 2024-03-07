@@ -56,6 +56,7 @@ void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
 	interrupt_eoi(id);
+	// INT
 	if (INTERRUPT_ROUTINE[id])
 	{
 		INTERRUPT_ROUTINE[id](stack);
@@ -107,10 +108,10 @@ void __FAULT(INTERRUPT_STACK* stack)
 		buf[1] = 'D';
 		buf[2] = 'F';
 	}
-	BYTE color0 = screen.color;
-	screen.color = 0x0C;
+	BYTE color0 = SCREEN.CLR;
+	SCREEN.CLR = 0x0C;
 	OUTPUTTEXT(buf);
-	screen.color = color0;
+	SCREEN.CLR = color0;
 	buf[0] = 'E';
 	buf[1] = 'R';
 	buf[2] = 'R';
@@ -135,6 +136,7 @@ void setup_interrupt()
 	{
 		IDT[i].S = 0x08;
 		IDT[i].TYPE = 0x0E;
+		register_interrupt(i, 0);
 	}
 
 	// Setup interrupt controller
@@ -158,11 +160,11 @@ void setup_interrupt()
 
 	// lidt
 	IDTR64 idtr;
-	idtr.Limit = 0x1000;
+	idtr.Limit = 0xFFF;
 	*((QWORD*)&idtr.Base) = ((QWORD)IDT);
 	__lidt(&idtr);
 
-	// OUtput idtr
+	// Output idtr
 	idtr.Limit = 0;
 	*((QWORD*)&idtr.Base) = 0;
 	__sidt(&idtr);

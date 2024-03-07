@@ -20,7 +20,7 @@ void setup_8259A()
 	// Slave PIC
 	__outbyte(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4); // Start init sequence (in cascade mode)
 	__outbyte(PIC2_DATA, PIC2_OFFSET); // ICW2: Slave PIC vector offset: 0x28
-	__outbyte(PIC2_DATA, 2); // ICW3: Tell slave PIC its cascade identity (0000 00[1]0)
+	__outbyte(PIC2_DATA, 2); // ICW3: Tell slave PIC its cascade identity (2)
 	__outbyte(PIC2_DATA, ICW4_8086); // ICW4: Have the PICs use 8086 mode
 }
 void eoi_8259A(BYTE id)

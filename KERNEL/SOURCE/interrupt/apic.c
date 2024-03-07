@@ -8,6 +8,7 @@
 #include <timer/8254.h>
 #include <timer/timer.h>
 #include <system.h>
+#include <memory/page.h>
 
 #define CPUID_FEAT_EDX_APIC (1 << 9)
 
@@ -61,15 +62,28 @@
 
 CODEDECL const char MSG0400[] = "SETUP APIC\n";
 CODEDECL const char MSG0401[] = "SETUP APIC TIMER ";
-CODEDECL const char MSG0402[] = "APIC TIMER FREQUENCY=";
-CODEDECL QWORD APIC_BASE_ADDRESS = 0;
+CODEDECL const char MSG0402[] = "APIC TIMER FREQUENCY ";
+CODEDECL const char MSG0403[] = "APIC REGISTER ADDRESS ";
+CODEDECL const char MSG0404[] = "APIC MEMORY MAPPING FAILED\n";
 CODEDECL DWORD (*APIC_REGISTERS)[4];
 
-void set_apic_address(QWORD adrs)
+void set_apic_address()
 {
-	DWORD eax = (adrs & 0xFFFFF000);
-	__writemsr(IA32_APIC_BASE_MSR, eax);
-	APIC_REGISTERS = (DWORD(*)[4]) adrs;
+	QWORD apic_base_msr = __readmsr(IA32_APIC_BASE_MSR);
+	QWORD apic_base = apic_base_msr & (~0xFFF);
+	OUTPUTTEXT(MSG0403);
+	PRINTRAX(apic_base, 16);
+	LINEFEED();
+	// Hardware enable APIC
+	// apic_base |= (1 << 11);
+	// __writemsr(IA32_APIC_BASE_MSR, apic_base_msr);
+	// APIC Registers base
+	APIC_REGISTERS = (DWORD(*)[4]) apic_base;
+	if (identity_mapping(apic_base, 0))
+	{
+		OUTPUTTEXT(MSG0404);
+		while (1) __halt();
+	}
 }
 void eoi_apic(BYTE id)
 {
@@ -88,7 +102,7 @@ void setup_apic()
 	disable_8259A();
 
 	OUTPUTTEXT(MSG0400);
-	set_apic_address((QWORD) OST->APIC);
+	set_apic_address();
 	// APIC EOI
 	interrupt_eoi = eoi_apic;
 	// Set TPR to 0, receive all interrupts
@@ -98,15 +112,13 @@ void setup_apic()
 
 	APIC_REGISTERS[APIC_LDR][0] = (APIC_REGISTERS[APIC_LDR][0] & 0x00FFFFFF) | 1;
 
+	APIC_REGISTERS[APIC_CMCI][0] = (1 << 17);
 	// Clear all lvt
 	APIC_REGISTERS[APIC_LVT0][0] = APIC_LVT_CLR;
-	APIC_REGISTERS[APIC_LVT1][0] = APIC_LVT_CLR;
+	APIC_REGISTERS[APIC_LVT1][0] = (1 << 17);
 	APIC_REGISTERS[APIC_LVT2][0] = APIC_LVT_NMI;
-	APIC_REGISTERS[APIC_LVT3][0] = APIC_LVT_CLR;
-	APIC_REGISTERS[APIC_LVT4][0] = APIC_LVT_CLR;
-	
-	// Enable APIC
-	__writemsr(IA32_APIC_BASE_MSR, __readmsr(IA32_APIC_BASE_MSR) | IA32_APIC_BASE_MSR_ENABLE);
+	APIC_REGISTERS[APIC_LVT3][0] = (1 << 17);
+	APIC_REGISTERS[APIC_LVT4][0] = (1 << 17);
 
 	// Software enable APIC
 	// Set the Spurious Interrupt Vector Register bit 8 to start receiving interrupts
@@ -136,8 +148,8 @@ void setup_apic_timer(DWORD rate)
 	__outbyte(PIT2_DATA, (frq >> 0) & 0xFF);
 	__inbyte(0x60);
 	__outbyte(PIT2_DATA, (frq >> 8) & 0xFF);
-	// Reset PIT one-shot counter (start counting)
 	BYTE al = __inbyte(PIT2_GATE) & 0xFE;
+	// Reset PIT one-shot counter (start counting)
 	__outbyte(PIT2_GATE, al);
 	__outbyte(PIT2_GATE, al | 1);
 	// Reset APIC timer (set counter to -1)

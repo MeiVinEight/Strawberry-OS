@@ -1,0 +1,9 @@
+#include "uefi.h"
+
+EFI_SYSTEM_TABLE *SYSTEM_TABLE = 0;
+EFI_DEVICE_PATH_TO_TEXT_PROTOCOL *DPTTP = 0;
+EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *SFSP = 0;
+void OutputString(const WORD *str)
+{
+	SYSTEM_TABLE->ConOut->OutputString(SYSTEM_TABLE->ConOut, (WORD *) str);
+}

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -21,13 +21,13 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f217876d-dcb5-4908-9f4e-2628589c2414}</ProjectGuid>
-    <RootNamespace>KERNEL</RootNamespace>
+    <ProjectGuid>{6e5f1590-9ed4-4748-ac29-6719725c51a5}</ProjectGuid>
+    <RootNamespace>EFI</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -36,7 +36,7 @@
     <SpectreMitigation />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -46,7 +46,7 @@
     <SpectreMitigation />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -55,7 +55,7 @@
     <SpectreMitigation />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -83,44 +83,56 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)EFI\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
-    <TargetExt>.DLL</TargetExt>
+    <TargetName>BOOTX64</TargetName>
+    <TargetExt>.EFI</TargetExt>
     <IncludePath />
     <ExternalIncludePath />
+    <ReferencePath />
+    <LibraryPath />
     <LinkIncremental>false</LinkIncremental>
     <IgnoreImportLibrary />
     <GenerateManifest />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)EFI\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
-    <TargetExt>.DLL</TargetExt>
+    <TargetName>BOOTX64</TargetName>
+    <TargetExt>.EFI</TargetExt>
     <IncludePath />
     <ExternalIncludePath />
+    <ReferencePath />
+    <LibraryPath />
     <LinkIncremental>false</LinkIncremental>
     <IgnoreImportLibrary />
     <GenerateManifest />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)EFI\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
-    <TargetExt>.DLL</TargetExt>
+    <TargetName>BOOTX64</TargetName>
+    <TargetExt>.EFI</TargetExt>
+    <IncludePath />
+    <ExternalIncludePath />
+    <ReferencePath />
+    <LibraryPath />
     <LinkIncremental>false</LinkIncremental>
     <IgnoreImportLibrary />
     <GenerateManifest />
-    <IncludePath />
-    <ExternalIncludePath />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)$(ProjectName)\</OutDir>
+    <OutDir>$(SolutionDir)EFI\</OutDir>
     <IntDir>$(ProjectDir).compile\</IntDir>
-    <TargetExt>.DLL</TargetExt>
+    <TargetName>BOOTX64</TargetName>
+    <TargetExt>.EFI</TargetExt>
+    <IncludePath />
+    <ExternalIncludePath />
+    <ReferencePath />
+    <LibraryPath />
     <LinkIncremental>false</LinkIncremental>
     <IgnoreImportLibrary />
     <GenerateManifest />
-    <IncludePath />
-    <ExternalIncludePath />
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -134,14 +146,13 @@
       </ConformanceMode>
       <ScanSourceForModuleDependencies />
       <TranslateIncludes />
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat />
       <SupportJustMyCode />
       <SuppressStartupBanner />
       <TreatWarningAsError />
       <DiagnosticsFormat />
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <OmitFramePointers />
@@ -192,13 +203,12 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
-      <FunctionLevelLinking>
-      </FunctionLevelLinking>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>EFI Application</SubSystem>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
+      <ShowProgress />
       <IncrementalLinkDatabaseFile />
       <SuppressStartupBanner />
       <RegisterOutput />
@@ -222,20 +232,16 @@
       <TypeLibraryResourceID />
       <NoEntryPoint />
       <SetChecksum />
-      <BaseAddress>0</BaseAddress>
       <RandomizedBaseAddress />
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>
+      </FixedBaseAddress>
       <DataExecutionPrevention />
       <TurnOffAssemblyGeneration />
-      <ImportLibrary />
-      <MergeSections>.text=TEXT</MergeSections>
       <TargetMachine />
       <Profile />
       <CLRImageType />
       <LinkErrorReporting />
-      <SectionAlignment>16</SectionAlignment>
-      <FunctionOrder>
-      </FunctionOrder>
+      <EntryPointSymbol>EFIMainCRTStartup</EntryPointSymbol>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -316,16 +322,16 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>EFI Application</SubSystem>
       <EnableCOMDATFolding>
       </EnableCOMDATFolding>
       <OptimizeReferences>
       </OptimizeReferences>
       <GenerateDebugInformation>
       </GenerateDebugInformation>
+      <ShowProgress />
       <IncrementalLinkDatabaseFile />
       <SuppressStartupBanner />
       <RegisterOutput />
@@ -350,21 +356,17 @@
       <TypeLibraryResourceID />
       <NoEntryPoint />
       <SetChecksum />
-      <BaseAddress>0</BaseAddress>
       <RandomizedBaseAddress />
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>
+      </FixedBaseAddress>
       <DataExecutionPrevention />
       <TurnOffAssemblyGeneration />
-      <ImportLibrary />
-      <MergeSections>.text=TEXT</MergeSections>
       <TargetMachine />
       <Profile />
       <CLRImageType />
       <LinkErrorReporting />
-      <SectionAlignment>16</SectionAlignment>
       <ImageHasSafeExceptionHandlers />
-      <FunctionOrder>
-      </FunctionOrder>
+      <EntryPointSymbol>EFIMainCRTStartup</EntryPointSymbol>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -385,14 +387,13 @@
       </ConformanceMode>
       <ScanSourceForModuleDependencies />
       <TranslateIncludes />
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat />
       <SupportJustMyCode />
       <SuppressStartupBanner />
       <TreatWarningAsError />
       <DiagnosticsFormat />
-      <Optimization>Disabled</Optimization>
-      <InlineFunctionExpansion>
-      </InlineFunctionExpansion>
+      <Optimization>MinSpace</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <IntrinsicFunctions />
       <FavorSizeOrSpeed />
       <EnableFiberSafeOptimizations />
@@ -442,13 +443,12 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
-      <FunctionLevelLinking>
-      </FunctionLevelLinking>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>EFI Application</SubSystem>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
+      <ShowProgress />
       <IncrementalLinkDatabaseFile />
       <SuppressStartupBanner />
       <RegisterOutput />
@@ -473,19 +473,15 @@
       <NoEntryPoint />
       <SetChecksum />
       <RandomizedBaseAddress />
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>
+      </FixedBaseAddress>
       <DataExecutionPrevention />
       <TurnOffAssemblyGeneration />
-      <ImportLibrary />
       <TargetMachine />
       <Profile />
       <CLRImageType />
       <LinkErrorReporting />
-      <SectionAlignment>16</SectionAlignment>
-      <MergeSections>.text=TEXT</MergeSections>
-      <BaseAddress>0</BaseAddress>
-      <FunctionOrder>
-      </FunctionOrder>
+      <EntryPointSymbol>EFIMainCRTStartup</EntryPointSymbol>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -565,16 +561,16 @@
       <UseFullPaths />
       <OmitDefaultLibName />
       <ErrorReporting />
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\HEADER</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>EFI Application</SubSystem>
       <EnableCOMDATFolding>
       </EnableCOMDATFolding>
       <OptimizeReferences>
       </OptimizeReferences>
       <GenerateDebugInformation>
       </GenerateDebugInformation>
+      <ShowProgress />
       <IncrementalLinkDatabaseFile />
       <SuppressStartupBanner />
       <RegisterOutput />
@@ -600,19 +596,15 @@
       <NoEntryPoint />
       <SetChecksum />
       <RandomizedBaseAddress />
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>
+      </FixedBaseAddress>
       <DataExecutionPrevention />
       <TurnOffAssemblyGeneration />
-      <ImportLibrary />
       <TargetMachine />
       <Profile />
       <CLRImageType />
       <LinkErrorReporting />
-      <SectionAlignment>16</SectionAlignment>
-      <MergeSections>.text=TEXT</MergeSections>
-      <BaseAddress>0</BaseAddress>
-      <FunctionOrder>
-      </FunctionOrder>
+      <EntryPointSymbol>EFIMainCRTStartup</EntryPointSymbol>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies />
@@ -622,31 +614,13 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\intrinsic.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\memory\page.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\memory\segment.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\system.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\timer\8254.c" />
-    <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c" />
+    <ClInclude Include="..\..\EFI\intrinsic.h" />
+    <ClInclude Include="..\..\EFI\uefi.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\intrinsic.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\memory\page.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\memory\segment.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\system.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h" />
-    <ClInclude Include="..\..\KERNEL\HEADER\types.h" />
+    <ClCompile Include="..\..\EFI\intrinsic.c" />
+    <ClCompile Include="..\..\EFI\main.c" />
+    <ClCompile Include="..\..\EFI\uefi.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
