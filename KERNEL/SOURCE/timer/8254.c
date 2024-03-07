@@ -41,10 +41,10 @@ void setup_8254(DWORD rate)
 	DWORD divider = PIT_FREQUENCY / rate;
 	if (divider >> 16)
 	{
-		BYTE color = screen.color;
-		screen.color = 0x0C;
+		BYTE color = SCREEN.CLR;
+		SCREEN.CLR = 0x0C;
 		OUTPUTTEXT(ERR0200);
-		screen.color = color;
+		SCREEN.CLR = color;
 	}
 	// 0 0: Channel 0
 	// 1 1: lb/hb

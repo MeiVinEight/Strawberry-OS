@@ -4,6 +4,8 @@
 #include <intrinsic.h>
 #include <timer/timer.h>
 #include <memory/page.h>
+#include <system.h>
+#include <memory/segment.h>
 
 typedef struct _MEMORY_REGION
 {
@@ -19,11 +21,15 @@ CODEDECL const char OK[] = "OK\n";
 CODEDECL const char MSG0000[] = "SET RSP ";
 CODEDECL const char MSG0001[] = "KERNEL AT ";
 
-void _DllMainCRTStartup(void)
+void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 {
-	screen.color = 0x0A;
+	setup_segment();
+	setup_system_table(table);
+	setup_screen();
+
+	SCREEN.CLR = 0x0A;
 	OUTPUTTEXT(OSNAME);
-	screen.color = 0x0F;
+	SCREEN.CLR = 0x0F;
 
 	OUTPUTTEXT(MSG0000);
 	PRINTRAX(__getrsp(), 16);
@@ -50,8 +56,9 @@ void _DllMainCRTStartup(void)
 	setup_interrupt();
 	setup_timer();
 	setup_paging();
-	MEMORY_REGION *beg = (MEMORY_REGION *) 0x00000608;
-	MEMORY_REGION *end = *((MEMORY_REGION **) 0x00000600);
+	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
+	MEMORY_REGION *end = *((MEMORY_REGION **) OST.MMAP);
+	QWORD usable = 0;
 	OUTPUTTEXT("Base Address       Length             Type\n");
 	//          0000000000000000 | 0000000000000000 | 00000000
 	while (beg < end)
@@ -62,6 +69,10 @@ void _DllMainCRTStartup(void)
 		OUTPUTTEXT(" | ");
 		PRINTRAX(beg->F, 8);
 		LINEFEED();
+		if (beg->F == 1)
+		{
+			usable += beg->L;
+		}
 		beg++;
 	}
 

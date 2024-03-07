@@ -8,6 +8,24 @@ CODE SEGMENT
 	DQ 4BAB5715BE559BDAH, 0B6A8F62BD266D389H
 	;PART GUID = {6A655705-B249-4C8C-A527-AEAAC113B6D8}
 	DQ 4C8CB2496A655705H, 0D8B613C1AAAE27A5H
+	;POINTER TO IMAGE
+	DW OFFSET LONGMODE
+	;DISPLAY MODE
+	;0: TEXT MODE
+	;1: GRAPHICS MODE
+	DB 00H
+	;COLOR MODE
+	;0: 4BIT COLOR PLAETTE
+	;1: 32BIT RGB
+	DB 00H
+	;HORIZONTAL
+	DW 50H
+	;VERTICAL
+	DW 19H
+	;MMIO ADDRESS (A0)
+	DQ 000B8000H
+	;ACPI RSDP ADDRESS
+	DQ 00H
 
 	STBRBOOT:
 	;Init segment registers to 1000H
@@ -21,13 +39,14 @@ CODE SEGMENT
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	;Detecting Memory
+	;Save at 3018H
 	PUSH ES
 	DB 66H
 	MOV DX, 4150H
 	DW 534DH
 	DB 66H
 	XOR BX, BX
-	MOV DI, 0608H
+	MOV DI, 3020H
 	LEA SI, [DI-8]
 	MOV ES, BX
 
@@ -53,7 +72,7 @@ CODE SEGMENT
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 	;0. Calculate PE32+ entry
-	;Read Image Base (0x00010100)
+	;Read Image Base
 	MOV BX, OFFSET JMPENTRY
 	DB 66H
 	MOV SI, [BX]
@@ -71,7 +90,7 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	;1. Set GDT at 0000:0500
+	;1. Set GDT at 0000:3000
 	;GDT[0] = 0x0000000000000000 RSV
 	;GDT[1] = 0x0020980000000000 CODE
 	;GDT[2] = 0x0000920000000000 DATA
@@ -80,7 +99,7 @@ CODE SEGMENT
 	DB 66H
 	XOR CX, CX
 	MOV DS, AX
-	MOV SI, 0500H
+	MOV SI, 3000H
 	;GDT[0]
 	DB 66H
 	MOV [SI+00H], AX
@@ -105,28 +124,27 @@ CODE SEGMENT
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-	;2. Set Page Table at 0x00001000
-	;Clear 5*4KB memory for Page Table
+	;2. Set Page Table at 0x00005000
+	;Mapping 0x00000000+2M to 0x0000000000000000
+	;Clear 3*4KB memory for Page Table
 	XOR AX, AX
 	MOV ES, AX
-	MOV DI, 1000H
-	MOV CX, 2800H; 5*4K has 2800H WORD(s)
+	MOV DI, 5000H
+	MOV CX, 1800H; 3*4K has 1800H WORD(s)
 	CLD
 	REP STOSW
-	;1-level page table has 2 entry
+	;1-level page table has 1 entry
 	;Point to 2 2-level page table
-	MOV DI, 1000H
-	MOV WORD PTR [DI+0000H], 2003H; 0x00002000, 1-LVL EBTRY 0x000
+	MOV DI, 5000H
+	MOV WORD PTR ES:[DI+0000H], 6003H; 0x00006000, 1-LVL ENTRY 0x000
 	;2-level page table has 1 entry, mapping 0x0000000000000000
 	;Point to 3-level page table
-	MOV DI, 2000H
-	MOV WORD PTR [DI+0000H], 3003H; 0x00003000
+	MOV DI, 6000H
+	MOV WORD PTR ES:[DI+0000H], 7003H; 0x00007000, 2-LVL ENTRY 0x000
 	;3-level page table has 1 entry, mapping 0x0000000000000000
-	;Point to 0x00000000
-	MOV DI, 3000H
-	MOV WORD PTR [DI+0000H], 0183H; 0x00000000, Global Page
-	;3-level page table(1) has 1 entry, mapping 0x0000000000000000
-	;Point to 0x00000000
+	;Point to physical address 0x00000000
+	MOV DI, 7000H
+	MOV WORD PTR ES:[DI+0000H], 0183H; 0x00000000, Global Page
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -157,7 +175,7 @@ CODE SEGMENT
 
 	;6. Set Page Table address CR3 bit 12:63
 	DB 66H
-	MOV AX, 1000H; PHY ADDR 0x00001000
+	MOV AX, 5000H; PHY ADDR 0x00005000
 	DW 0000H
 	;MOV CR3, EAX
 	DB 66H, 0FH, 22H, 18H
@@ -170,11 +188,11 @@ CODE SEGMENT
 	DB 66H
 	PUSH CX; GDT physical address high 32 bit
 
-	DB 66H
-	MOV SI, 0500H
-	DW 00H
-	DB 66H
-	PUSH SI; GDT physical address low 32 bit
+	; GDT physical address low 32 bit
+	MOV SI, 0000H
+	PUSH SI
+	MOV SI, 3000H
+	PUSH SI
 
 	MOV AX, 0018H
 	PUSH AX;GDT size = 18H
@@ -187,6 +205,10 @@ CODE SEGMENT
 	MOV DS, AX
 	MOV ES, AX
 	MOV SS, AX
+	;Set stack at 0x00020000
+	DB 66H
+	MOV SP, 00H
+	DW 02H
 
 	;- - - - - - - - - - - - - - - - - - - - - - - - - - -
 

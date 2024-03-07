@@ -20,5 +20,7 @@ QWORD __getrsp();
 void __cli();
 void __sti();
 void *memset(void *, DWORD, QWORD);
+void *memcpy(void *, const void *, QWORD);
+void __lgdt(void *);
 
 #endif

@@ -1,14 +1,167 @@
 #include <console/console.h>
 #include <declspec.h>
+#include <intrinsic.h>
+#include <system.h>
+
+typedef struct _TEXT_MODE_MEMORY
+{
+	BYTE *TEXT;
+	DWORD CURSOR;
+} TEXT_MODE_MEMORY;
 
 CODEDECL const char HEXDIG[] = "0123456789ABCDEF";
+CODEDECL CONSOLE_SCREEN SCREEN;
+CODEDECL TEXT_MODE_MEMORY TEXT_MODE;
+CODEDECL const DWORD COLOR_PALETTE[] =
+{
+	0x000000,
+	0x0000AA,
+	0x00AA00,
+	0x00AAAA,
+	0xAA0000,
+	0xAA00AA,
+	0xFFAA00,
+	0xAAAAAA,
+	0x555555,
+	0x5555FF,
+	0x55FF55,
+	0x55FFFF,
+	0xFF5555,
+	0xFF55FF,
+	0xFFFF55,
+	0xFFFFFF
+};
+CODEDECL BYTE FONT[256][16];
+// CODEDECL TEXT_MODE_MEMORY GRAPHICS_MODE_TEXT;
 
-void OUTPUTTEXT(const char* s)
+void FLUSHVIDEO()
+{
+	// memcpy((void *) SCREEN.A0, (void *) SCREEN.A1, SCREEN.H * SCREEN.V * 4);
+}
+void FLUSHLINE(DWORD start, DWORD count)
+{
+	if (SCREEN.DM)
+	{
+		// DWORD offset = SCREEN.H * 4 * 16 * start;
+		// memcpy((void *) (SCREEN.A0 + offset), (void *) (SCREEN.A1 + offset), SCREEN.H * 4 * 16 * count);
+	}
+}
+void PAINTCURSOR(DWORD cursor)
+{
+	DWORD i = cursor / SCREEN.CLM;
+	DWORD j = cursor % SCREEN.CLM;
+	DWORD *pos = (DWORD *) SCREEN.A0;
+	pos += SCREEN.H * i * 16;
+	pos += j * 8;
+	for (DWORD j = 0; j < 16; j++)
+	{
+		pos[0] = pos[1] = COLOR_PALETTE[SCREEN.CLR & 0xF];
+		pos += SCREEN.H;
+	}
+}
+void PAINTCHAR(BYTE x, BYTE c, DWORD cursor)
+{
+	DWORD i = cursor / SCREEN.CLM;
+	DWORD j = cursor % SCREEN.CLM;
+	DWORD *pos = (DWORD *) SCREEN.A0;
+	pos += SCREEN.H * i * 16;
+	pos += j * 8;
+	BYTE *font = FONT[x];
+	for (DWORD k = 0; k < 16; k++)
+	{
+		BYTE bit = font[k];
+		for (DWORD p = 0; p < 8; p++)
+		{
+			if (bit & 0x80)
+			{
+				pos[p] = COLOR_PALETTE[(c >> 0) & 0xF];
+			}
+			else
+			{
+				pos[p] = COLOR_PALETTE[(c >> 4) & 0xF];
+			}
+			bit <<= 1;
+		}
+		pos += SCREEN.H;
+	}
+}
+void SCROLLSCREEN()
+{
+	memcpy(TEXT_MODE.TEXT, TEXT_MODE.TEXT + (SCREEN.CLM * 2), (SCREEN.CLM * SCREEN.ROW) * 2);
+	SCREEN.CSR -= SCREEN.CLM;
+	if (SCREEN.DM)
+	{
+		memcpy((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4));
+		memset((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 16 * 4);
+		TEXT_MODE.CURSOR -= SCREEN.CLM;
+		FLUSHVIDEO();
+	}
+}
+void MOVECURSOR()
+{
+	if (SCREEN.CSR >= SCREEN.ROW * SCREEN.CLM)
+	{
+		SCROLLSCREEN();
+	}
+	if (SCREEN.DM)
+	{
+		BYTE *ch = ((BYTE(*)[2]) TEXT_MODE.TEXT)[TEXT_MODE.CURSOR];
+		PAINTCHAR(ch[0], ch[1], TEXT_MODE.CURSOR);
+		PAINTCURSOR(TEXT_MODE.CURSOR = SCREEN.CSR);
+	}
+	else
+	{
+		// 0x3D5:0x0E high 8 bit
+		__outbyte(0x03D4, 0x0E);
+		__outbyte(0x03D5, SCREEN.CSR >> 8);
+		// 0x3D5:0x0F low 8 bit
+		__outbyte(0x03D4, 0x0F);
+		__outbyte(0x03D5, SCREEN.CSR & 0xFF);
+	}
+}
+void OUTPUTTEXT(const char *s)
 {
 	while (*s)
 	{
-		OUTCHAR(*s++);
+		char x = *s++;
+		switch (x)
+		{
+			case '\r':
+			{
+				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
+				MOVECURSOR();
+				break;
+			}
+			case '\n':
+			{
+				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
+				SCREEN.CSR += SCREEN.CLM;
+				MOVECURSOR();
+				FLUSHLINE((SCREEN.CSR / SCREEN.CLM) - 1, 2);
+				break;
+			}
+			default:
+			{
+				((WORD *) TEXT_MODE.TEXT)[SCREEN.CSR] = (WORD) x | (SCREEN.CLR << 8);
+				SCREEN.CSR++;
+				MOVECURSOR();
+				break;
+			}
+		}
 	}
+}
+void OUTCHAR(char x)
+{
+	DWORD y = (BYTE) x;
+	OUTPUTTEXT((char *) &y);
+}
+void CARRIAGERETURN()
+{
+	OUTCHAR('\r');
+}
+void LINEFEED()
+{
+	OUTCHAR('\n');
 }
 void PRINTRAX(QWORD x, BYTE s)
 {
@@ -37,4 +190,17 @@ void OUTPUTWORD(QWORD x)
 		return;
 	}
 	OUTCHAR('0');
+}
+void setup_screen()
+{
+	SCREEN.CSR = 0;
+	SCREEN.CLR = 0x0F;
+	TEXT_MODE.TEXT = (BYTE *) SCREEN.A0;
+	if (SCREEN.DM)
+	{
+		TEXT_MODE.TEXT = (BYTE *) 0x00010000;
+		memset((void *) SCREEN.A0, 0, SCREEN.H * SCREEN.V * 4);
+	}
+	memset(TEXT_MODE.TEXT, 0, SCREEN.CLM * SCREEN.ROW * 2);
+	TEXT_MODE.CURSOR = 0;
 }

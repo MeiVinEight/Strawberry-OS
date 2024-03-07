@@ -27,6 +27,7 @@
 #define AHCI_DEVICE_SATAPI 4
 
 #define ATA_CMD_READ_DMA_EX                 0x25
+#define ATA_CMD_IDENTIFY_DEVICE             0xEC
 
 #define ATA_DEV_BUSY 0x80
 #define ATA_DEV_DRQ  0x08
@@ -35,6 +36,11 @@
 
 
 #define PAGE_COUNT (15 << 8)
+
+#define SYSTEM_PHY 0x00000000
+#define KERNEL_PHY 0x01000000
+
+#define KERNEL_LNR 0xFFFFFFFFFF000000ULL
 
 
 #define SECTION "TEXT"
@@ -48,6 +54,39 @@ typedef unsigned long DWORD;
 typedef unsigned long long QWORD;
 
 
+typedef struct _STBRBOOT
+{
+	BYTE JMP[8];
+	QWORD MFT;
+	QWORD GUID0[2];
+	QWORD GUID1[2];
+	WORD LONGMODE;
+	BYTE DM;
+	BYTE CM;
+	WORD H;
+	WORD V;
+	QWORD A0;
+	QWORD RSDP;
+	BYTE CODE[];
+} STBRBOOT;
+typedef struct _CONSOLE_SCREEN
+{
+	QWORD A0;
+	QWORD A1;
+	WORD  H;
+	WORD  V;
+	WORD  ROW;
+	WORD  CLM;
+	DWORD CSR;
+	BYTE  DM;
+	BYTE  CM;
+	BYTE  CLR;
+} CONSOLE_SCREEN;
+typedef struct _TEXT_MODE_MEMORY
+{
+	BYTE *TEXT;   // Data address in text mode
+	DWORD CURSOR; // Current cursor position
+} TEXT_MODE_MEMORY;
 typedef volatile struct _HBA_PORT
 {
 	DWORD clb;		// 0x00, command list base address, 1K-byte aligned
@@ -201,14 +240,27 @@ typedef struct _NTFS_BPB
 	QWORD serial;
 	DWORD checksum;
 } NTFS_BPB;
+typedef struct _OS_SYSTEM_TABLE
+{
+	QWORD FONT;
+	QWORD MMAP;
+	QWORD BLAT;
+	QWORD PTME;
+	QWORD PAGE;
+	QWORD SCRN;
+	QWORD RSDP;
+} OS_SYSTEM_TABLE;
 
 
 void* __cdecl memset(void*, int, unsigned long long);
 void* __cdecl memcpy(void*, const void*, unsigned long long);
+void PAINTCURSOR(DWORD);
+void PAINTCHAR(BYTE, BYTE, DWORD);
 void SCROLLPAGE();
 void MOVECURSOR();
 void CARRIAGERETURN();
 void LINEFEED();
+void OUTCHAR(char);
 void OUTPUTTEXT(const char *);
 DWORD find_pci();
 DWORD pci_device(DWORD, DWORD);
@@ -216,13 +268,34 @@ DWORD ahci_controller_setup(DWORD);
 void* pci_enable_mmio(DWORD, DWORD);
 DWORD check_type(HBA_PORT*);
 DWORD port_rebase(HBA_PORT*);
-DWORD LoadingSATA(HBA_PORT*);
+DWORD AHCIIO(HBA_PORT *, QWORD, WORD, void *, DWORD);
+DWORD LoadingSATA(HBA_PORT*, QWORD);
 void stop_cmd(HBA_PORT*);
 
 /*
 * Cursor pos in 80x25 mode
 */
-BIOSAPI DWORD CURSOR = 0;
+BIOSAPI TEXT_MODE_MEMORY TEXT_MODE;
+BIOSAPI CONSOLE_SCREEN SCREEN;
+BIOSAPI DWORD COLOR_PLAETTE[] =
+{
+	0x000000,
+	0x0000AA,
+	0x00AA00,
+	0x00AAAA,
+	0xAA0000,
+	0xAA00AA,
+	0xFFAA00,
+	0xAAAAAA,
+	0x555555,
+	0x5555FF,
+	0x55FF55,
+	0x55FFFF,
+	0xFF5555,
+	0xFF55FF,
+	0xFFFF55,
+	0xFFFFFF
+};
 // DISK GUID
 BIOSAPI QWORD *GUID0 = (QWORD *) 0x00010010;
 // PART GUID
@@ -236,10 +309,17 @@ BIOSAPI const char ERR03[] = "NO NTFS SYSTEM PART\n";
 BIOSAPI const char ERR04[] = "NO 80 DATA RUN LIST\n";
 BIOSAPI const char ERR05[] = "NO KERNEL.DLL\n";
 BIOSAPI const char ERR06[] = "NO EMPTY PAGE\n";
-BIOSAPI const QWORD KERNEL_PHY = 0x01000000;
-BIOSAPI const QWORD KERNEL_LNR = 0xFFFFFFFFFF000000ULL;
+BIOSAPI const char MSG0000[] = "Strawberry-BOOT\n";
+BIOSAPI const char MSG0001[] = "PCI:FIND AHCI CONTROLLER\n";
+BIOSAPI const char MSG0002[] = "FIND BIOS RSDP\n";
+BIOSAPI const char MSG0003[] = "KERNEL ENTRY ";
+BIOSAPI const char DVC07E015AD[] = "VMware SATA AHCI controller";
+BIOSAPI const char DVC06D38086[] = "Intel(R) 400 Series Chipset Family SATA AHCI Controller";
+BIOSAPI const char DVCA2828086[] = "Intel Corporation 200 Series PCH SATA controller [AHCI mode]";
 BIOSAPI BYTE PTM[PAGE_COUNT >> 3] = {0};
-BIOSAPI QWORD(*const PAGING)[512] = (QWORD(*)[512]) 0x100000;
+BIOSAPI QWORD(*const PAGING)[512] = (QWORD(*)[512]) 0x00100000;
+BIOSAPI STBRBOOT *BOOT_TABLE = (STBRBOOT *) 0x00010000;
+BIOSAPI OS_SYSTEM_TABLE SYSTEM_TABLE;
 
 QWORD empty_page()
 {
@@ -259,77 +339,147 @@ QWORD *page_entry(QWORD *PT, WORD idx)
 	{
 		if (!(PT[idx] & 1))
 		{
+			// PT[idx] not present, find an empty 4K page
 			QWORD l = empty_page();
 			if (!l)
 			{
+				// No empty 4K page
 				OUTPUTTEXT(ERR06);
 				while (1) __halt();
 			}
+			// Clear 4K page
 			memset((QWORD *) l, 0, 4096);
+			// Table present and R/W
 			PT[idx] = l | 3;
 		}
 		return (QWORD *) (PT[idx] & ~0xFFF);
 	}
 	return 0;
 }
-void linear_mapping(QWORD addr)
+void identity_mapping(QWORD addr)
 {
 	WORD idx0 = (addr >> 39) & 0x1FF;
 	WORD idx1 = (addr >> 30) & 0x1FF;
 	WORD idx2 = (addr >> 21) & 0x1FF;
 	QWORD *L2 = page_entry(page_entry((QWORD *) __readcr3(), idx0), idx1);
-	if (L2)
+	if (L2 && !(L2[idx2] & 1))
 	{
 		L2[idx2] = ((addr >> 21) << 21) | 0x83;
 	}
 }
-void mainCRTStartup()
+void setup_paging()
 {
-	// Clear screen
-	memset((void *) 0x000B8000, 0, 4000);
+	SYSTEM_TABLE.PTME = (QWORD) PTM;
+	SYSTEM_TABLE.PAGE = (QWORD) PAGING;
 	// Clear 1M Memory
-	memset(PAGING, 0, 0x100000);
-	QWORD* L1 = (QWORD*) PAGING[0];
+	memset(PAGING, 0, 0x00100000);
+	QWORD *L1 = (QWORD *) PAGING[0];
 	L1[0] = (QWORD) PAGING[1] | 3;
-	QWORD* L2 = PAGING[1];
+	QWORD *L2 = PAGING[1];
 	L2[0] = (QWORD) PAGING[2] | 3;
-	QWORD* L31 = PAGING[2];
+	QWORD *L31 = PAGING[2];
 
 	L1[511] = (QWORD) PAGING[3] | 3;
 	L2 = PAGING[3];
 	L2[511] = (QWORD) PAGING[4] | 3;
-	QWORD* L32 = PAGING[4];
+	QWORD *L32 = PAGING[4];
 
 	DWORD idx1 = 0;
 	DWORD idx2 = 0x1F8;
-	QWORD SYSTEM = 0x00000183;
-	QWORD KERNEL = 0x01000183;
+	DWORD idx3 = 16;
+	QWORD SYSTEM = SYSTEM_PHY | 0x183;
+	QWORD KERNEL = KERNEL_PHY | 0x183;
+	QWORD VIDEOM = 0x02000083;// Not global page
 	while (idx1 < 8)
 	{
-		L31[idx1] = SYSTEM;
-		L32[idx2] = KERNEL;
-		idx1++;
-		idx2++;
+		L31[idx1++] = SYSTEM;
+		L32[idx2++] = KERNEL;
+		L31[idx3++] = VIDEOM;
 		SYSTEM += 0x00200000;
 		KERNEL += 0x00200000;
+		VIDEOM += 0x00200000;
 	}
-	__writecr3(PAGING);
-	memset((void *)0x00200000, 0, 0x00E00000);
-	memset((void *)KERNEL_LNR, 0, 0x01000000);
+	__writecr3((QWORD) PAGING);
+	memset((void *) 0x00200000, 0, 0x00E00000);
+	memset((void *) KERNEL_LNR, 0, 0x01000000);
 	PTM[0] = 0x1F;
+}
+void setup_screen()
+{
+	SYSTEM_TABLE.FONT = 0x00001000;
+	SYSTEM_TABLE.SCRN = (QWORD) &SCREEN;
+	SCREEN.A0 = BOOT_TABLE->A0;
+	SCREEN.H = BOOT_TABLE->H;
+	SCREEN.V = BOOT_TABLE->V;
+	SCREEN.ROW = SCREEN.V;
+	SCREEN.CLM = SCREEN.H;
+	SCREEN.CSR = 0;
+	SCREEN.DM = BOOT_TABLE->DM;
+	SCREEN.CM = BOOT_TABLE->CM;
+	SCREEN.CLR = 0x0F;
+	TEXT_MODE.TEXT = (BYTE *) SCREEN.A0;
+	if (SCREEN.DM)
+	{
+		SCREEN.ROW >>= 4;
+		SCREEN.CLM >>= 3;
+		TEXT_MODE.TEXT = (BYTE *) 0x00020000;
+		QWORD beg = SCREEN.A0;
+		QWORD end = beg + (SCREEN.H * SCREEN.V * 4);
+		while (beg < end)
+		{
+			identity_mapping(beg);
+			beg += 0x00200000;
+		}
+		memset((void *) SCREEN.A0, 0, SCREEN.H * SCREEN.V * 4);
+	}
+	memset(TEXT_MODE.TEXT, 0, SCREEN.CLM *SCREEN.ROW * 2);
+}
+void setup_acpi()
+{
+	if (!BOOT_TABLE->RSDP)
+	{
+		OUTPUTTEXT(MSG0002);
+		char buf[8] = "RSD PTR ";
+		QWORD sig = *((QWORD *) buf);
+		QWORD *start = (QWORD *) 0x000E0000;
+		while (start < (QWORD *) 0x00100000)
+		{
+			if (sig == *start)
+			{
+				BOOT_TABLE->RSDP = (QWORD) start;
+			}
+			start += 2;
+		}
+	}
+	SYSTEM_TABLE.RSDP = BOOT_TABLE->RSDP;
+}
+BIOSAPI const char HEXDIG[] = "0123456789ABCDEF";
+void PRINTRAX(QWORD x, BYTE s)
+{
+	char buf[17];
+	buf[s] = 0;
+	while (s--)
+	{
+		buf[s] = HEXDIG[x & 0xF];
+		x >>= 4;
+	}
+	OUTPUTTEXT(buf);
+}
+void mainCRTStartup()
+{
+	SYSTEM_TABLE.BLAT = 0x00010000;
+	SYSTEM_TABLE.MMAP = 0x00003018;
+	setup_paging();
+	setup_screen();
+	OUTPUTTEXT(MSG0000);
 
-	// OUTPUTTEXT("STRAWBERRY OS\n");
+	char buf[4] = {'A', '0', ' ', 0};
+	OUTPUTTEXT(buf);
+	PRINTRAX(SCREEN.A0, 16);
+	LINEFEED();
+
 	if (!find_pci())
 	{
-		// Clear screen
-		memset((void *) 0x000B8000, 0, 4000);
-		// Clear other memory mapping
-		memset(((BYTE *) PAGING[0]) + (0x001 << 3), 0, 510 * 8);
-		memset(((BYTE *) PAGING[1]) + (0x001 << 3), 0, 511 * 8);
-		memset(((BYTE *) PAGING[2]) + (0x008 << 3), 0, 504 * 8);
-		memset(((BYTE *) PAGING[3]) + (0x000 << 3), 0, 511 * 8);
-		memset(((BYTE *) PAGING[4]) + (0x000 << 3), 0, 504 * 8);
-		memset((PAGING + 5), 0, 0x01000000 - (QWORD) (PAGING + 5));
 		// DOS HEADER
 		QWORD base = KERNEL_LNR;
 		// NT HEADER = ImageBase + [DOS_HEADER + 0x3C]
@@ -337,14 +487,18 @@ void mainCRTStartup()
 		// [NT_HEADER + 0x30] is the absolute liner address of image base
 		*((QWORD *) (NTHeader + 0x30)) = base;
 		// ImageBase + [NT_HEADER + 0x28] is the address of entry point
+		QWORD entry = (QWORD) (base + *((DWORD *) (NTHeader + 0x28)));
+		OUTPUTTEXT(MSG0003);
+		PRINTRAX(entry, 16);
+		LINEFEED();
 		BYTE call[24] =
 		{
 			0x48, 0xBC, 0xD8, 0xFF, 0xFF, 0xFF, // MOV RSP, FFFFFFFFFFFFFFD8
 			0xFF, 0xFF, 0xFF, 0xFF,
-			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00, // JMP DWORD PTR [00000000]
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00, // JMP QWORD PTR [00000000]
 		};
-		*((QWORD *) (call + 16)) = (QWORD)(base + *((DWORD*)(NTHeader + 0x28)));
-		((void (*)())call)();
+		*((QWORD *) (call + 16)) = entry;
+		((void (*)(OS_SYSTEM_TABLE *))call)(&SYSTEM_TABLE);
 	}
 	else
 	{
@@ -352,63 +506,146 @@ void mainCRTStartup()
 		while (1);
 	}
 }
+void FLUSHVIDEO()
+{
+	// memcpy((void *) SCREEN.A0, (void *) SCREEN.A1, SCREEN.H * SCREEN.V * 4);
+}
+void FLUSHLINE(DWORD start, DWORD count)
+{
+	/*
+	if (SCREEN.DM)
+	{
+		DWORD offset = SCREEN.H * 4 * 16 * start;
+		memcpy((void *) (SCREEN.A0 + offset), (void *) (SCREEN.A1 + offset), SCREEN.H * 4 * 16 * count);
+	}
+	*/
+}
+void PAINTCURSOR(DWORD cursor)
+{
+	DWORD i = cursor / SCREEN.CLM;
+	DWORD j = cursor % SCREEN.CLM;
+	DWORD *pos = (DWORD *) SCREEN.A0;
+	pos += SCREEN.H * i * 16;
+	pos += j * 8;
+	for (DWORD j = 0; j < 16; j++)
+	{
+		pos[0] = pos[1] = COLOR_PLAETTE[SCREEN.CLR & 0xF];
+		pos += SCREEN.H;
+	}
+}
+void PAINTCHAR(BYTE x, BYTE c, DWORD cursor)
+{
+	DWORD i = cursor / SCREEN.CLM; // pos Y
+	DWORD j = cursor % SCREEN.CLM; // pos X
+	DWORD *pos = (DWORD *) SCREEN.A0; // 4 byte (32bit) pre pixel
+	pos += SCREEN.H * i * 16; // 16 pixel line pre text line
+	pos += j * 8; // 8 pixel column pre text column
+	BYTE *font = ((BYTE(*)[16]) 0x00001000)[x]; // 8*16 bit map of font
+	for (DWORD k = 0; k < 16; k++)
+	{
+		BYTE bit = font[k];
+		for (DWORD p = 0; p < 8; p++)
+		{
+			if (bit & 0x80)
+			{
+				// bit is 1, foreground color
+				pos[p] = COLOR_PLAETTE[(c >> 0) & 0xF];
+			}
+			else
+			{
+				// bit is 0, background color
+				pos[p] = COLOR_PLAETTE[(c >> 4) & 0xF];
+			}
+			bit <<= 1;
+		}
+		// next pixel line
+		pos += SCREEN.H;
+	}
+}
+void SCROLLSCREEN()
+{
+	memcpy(TEXT_MODE.TEXT, TEXT_MODE.TEXT + (SCREEN.CLM * 2), (SCREEN.CLM * SCREEN.ROW) * 2);
+	// If in text mode, text mode cursor is unused.
+	// SCREEN.CSR is global current cursor position,
+	// TEXT_MODE.CURSOR is only used for software emulation text mode terminal.
+	SCREEN.CSR -= SCREEN.CLM;
+	if (SCREEN.DM)
+	{
+		memcpy((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4));
+		memset((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 16 * 4);
+		TEXT_MODE.CURSOR -= SCREEN.CLM;
+		FLUSHVIDEO();
+	}
+}
 void MOVECURSOR()
 {
-	if (CURSOR >= 0x07D0)
+	if (SCREEN.CSR >= SCREEN.ROW * SCREEN.CLM)
 	{
-		CURSOR -= 0x50;
-		SCROLLPAGE();
+		SCROLLSCREEN();
 	}
-	// 0x3D5:0x0E high 8 bit
-	__outbyte(0x03D4, 0x0E);
-	__outbyte(0x03D5, CURSOR >> 8);
-	// 0x3D5:0x0F low 8 bit
-	__outbyte(0x03D4, 0x0F);
-	__outbyte(0x03D5, CURSOR & 0xFF);
+	if (SCREEN.DM)
+	{
+		BYTE *ch = ((BYTE(*)[2]) TEXT_MODE.TEXT)[TEXT_MODE.CURSOR];
+		PAINTCHAR(ch[0], ch[1], TEXT_MODE.CURSOR);
+		PAINTCURSOR(TEXT_MODE.CURSOR = SCREEN.CSR);
+	}
+	else
+	{
+		// 0x3D5:0x0E high 8 bit
+		__outbyte(0x03D4, 0x0E);
+		__outbyte(0x03D5, SCREEN.CSR >> 8);
+		// 0x3D5:0x0F low 8 bit
+		__outbyte(0x03D4, 0x0F);
+		__outbyte(0x03D5, SCREEN.CSR & 0xFF);
+	}
 }
-void CARRIAGERETURN()
-{
-	CURSOR -= (CURSOR % 0x50);
-	MOVECURSOR();
-}
-void LINEFEED()
-{
-	// \r
-	CARRIAGERETURN();
-	// \n:move cursor to next line: cursor + 0x50
-	CURSOR += 0x50;
-	MOVECURSOR();
-}
-void OUTPUTTEXT(const char* s)
+void OUTPUTTEXT(const char *s)
 {
 	while (*s)
 	{
-		// low 8 bit is ASCII code
-		WORD x = *s;
-		if (x == '\r')
+		char x = *s++;
+		switch (x)
 		{
-			CARRIAGERETURN();
+			case '\r':
+			{
+				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
+				MOVECURSOR();
+				break;
+			}
+			case '\n':
+			{
+				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
+				SCREEN.CSR += SCREEN.CLM;
+				MOVECURSOR();
+				FLUSHLINE((SCREEN.CSR / SCREEN.CLM) - 1, 2);
+				break;
+			}
+			default:
+			{
+				((WORD *) TEXT_MODE.TEXT)[SCREEN.CSR] = (WORD) x | (SCREEN.CLR << 8);
+				SCREEN.CSR++;
+				MOVECURSOR();
+				break;
+			}
 		}
-		else if (x == '\n')
-		{
-			LINEFEED();
-		}
-		else
-		{
-			// not CR or LF, output ascii code
-			// high 8 bit is text attribute
-			x |= 0x700;
-			// write to cursor position
-			*((WORD *) (0x000B8000ULL + ((QWORD) CURSOR << 1))) = x;
-			// Increment cursor pos
-			CURSOR++;
-		}
-		s++;
-		MOVECURSOR();
 	}
+}
+void OUTCHAR(char x)
+{
+	DWORD y = (BYTE) x;
+	OUTPUTTEXT((char *) &y);
+}
+void CARRIAGERETURN()
+{
+	OUTCHAR('\r');
+}
+void LINEFEED()
+{
+	OUTCHAR('\n');
 }
 DWORD find_pci()
 {
+	OUTPUTTEXT(MSG0001);
 	// Config Address
 	DWORD cmd = 0x80000000;
 	while (cmd < 0x81000000)
@@ -428,6 +665,32 @@ DWORD find_pci()
 	}
 	return 1;
 }
+const char *device_name(DWORD id)
+{
+	DWORD vendor = id & 0xFFFF;
+	DWORD device = id >> 16;
+	switch (vendor)
+	{
+		case 0x15AD:
+		{
+			switch (device)
+			{
+				case 0x07E0: return DVC07E015AD;
+			}
+			break;
+		}
+		case 0x8086:
+		{
+			switch (device)
+			{
+				case 0x06D3: return DVC06D38086;
+				case 0xA282: return DVCA2828086;
+			}
+			break;
+		}
+	}
+	return 0;
+}
 DWORD pci_device(DWORD cmd, DWORD id)
 {
 	// Read class code
@@ -436,10 +699,46 @@ DWORD pci_device(DWORD cmd, DWORD id)
 
 	if (class == 0x010601) // AHCI Controller
 	{
+		QWORD PCI = 0x28494350;
+		BYTE *buf = (BYTE *) &PCI;
+		OUTPUTTEXT(buf);
+		PRINTRAX(cmd >> 16, 2);
+		OUTCHAR('.');
+		PRINTRAX((cmd >> 11) & 31, 2);
+		OUTCHAR('.');
+		PRINTRAX((cmd >> 8) & 7, 1);
+		PCI = 0x3A29;
+		OUTPUTTEXT(buf);
+		const char *dvcName = device_name(id);
+		if (dvcName)
+		{
+			OUTPUTTEXT(dvcName);
+		}
+		else
+		{
+			PRINTRAX(id, 8);
+		}
+		LINEFEED();
 		return ahci_controller_setup(cmd);
 	}
 
 	return 1;
+}
+void *TrailingZero(char *beg, char *end)
+{
+	while (end > beg && *--end == 0x20)
+	{
+		*end = 0;
+	}
+	return end + 1;
+}
+char *LeadingZero(char *beg, char *end)
+{
+	while (beg < end && *beg == 0x20)
+	{
+		beg++;
+	}
+	return beg;
 }
 DWORD ahci_controller_setup(DWORD dvc)
 {
@@ -465,6 +764,8 @@ DWORD ahci_controller_setup(DWORD dvc)
 	DWORD pi = abar->pi;
 	// AHCI Port
 	HBA_PORT *port = abar->ports;
+	// Use 1 page as buffer
+	QWORD page = 0x0000A000;
 	while (pi && find)
 	{
 		if (pi & 1)
@@ -474,7 +775,28 @@ DWORD ahci_controller_setup(DWORD dvc)
 				// Try to read kernel
 				if (!port_rebase(port))
 				{
-					find &= LoadingSATA(port);
+					AHCIIO(port, 0,1, (void *) page, ATA_CMD_IDENTIFY_DEVICE);
+					BYTE(*buffer)[2] = (BYTE(*)[2]) page;
+					for (DWORD i = 0; i < 256; i++)
+					{
+						BYTE c = buffer[i][0];
+						buffer[i][0] = buffer[i][1];
+						buffer[i][1] = c;
+					}
+					PRINTRAX(port - abar->ports, 2);
+					OUTCHAR(':');
+					OUTCHAR('[');
+					BYTE *identify = (BYTE *) (page + 0x14);
+					identify[0x14] = 0;
+					OUTPUTTEXT(LeadingZero(identify, TrailingZero(identify, identify + 0x14)));
+					OUTCHAR(']');
+					OUTCHAR('[');
+					identify = (BYTE *) (page + 0x36);
+					identify[0x28] = 0;
+					OUTPUTTEXT(LeadingZero(identify, TrailingZero(identify, identify + 0x28)));
+					OUTCHAR(']');
+					LINEFEED();
+					find &= LoadingSATA(port, page);
 				}
 				stop_cmd(port);
 			}
@@ -498,7 +820,7 @@ void* pci_enable_mmio(DWORD device, DWORD addr)
 		return 0;
 	}
 	bar &= ~0xF;
-	linear_mapping(bar);
+	identity_mapping(bar);
 	// Use base as mmio address, write to BAR
 	// __outdword(0x0CF8, device + addr);
 	// __outdword(0x0CFC, base | (bar & 0xF));
@@ -550,36 +872,32 @@ void stop_cmd(HBA_PORT* port)
 }
 DWORD port_rebase(HBA_PORT* port)
 {
-	// Use 3 pages
-	QWORD addr = 0x00015000;
+	// Use 2 pages
+	QWORD addr = 0x00008000;
 	// Stop command engine
 	stop_cmd(port);
 
-	// Command list offset: ADDR 1KiB aligned
 	// Command list entry size = 32
 	// Command list entry maxim count  = 32
 	// Command list maxim size = 32*32 = 1024 per port
-	port->clb = addr;
-	port->clbu = addr >> 32;
+	identity_mapping((port->clb | ((QWORD) port->clbu << 32)));
 	memset((void*)(port->clb | ((QWORD)port->clbu << 32)), 0, 1024);
 
-	// FIS offset base: ADDR+9KiB 256B aligned
 	// FIS entry size = 256B per port
-	port->fb = (addr + 9 * 1024);
-	port->fbu = (addr + 9 * 1024) >> 32;
+	identity_mapping((port->fb | ((QWORD) port->fbu << 32)));
 	memset((void*)(port->fb | ((QWORD)port->fbu << 32)), 0, 256);
 
-	// Command table offset: ADDR+1KiB
 	// Command table size = 256*32 = 8KiB per port
 	HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb | ((QWORD)port->clbu << 32));
 	for (int i = 0; i < 32; i++)
 	{
+		//identity_mapping((QWORD) (cmdheader + i));
 		cmdheader[i].prdtl = 8; // 8 prdt entries per command table
 		// 256B per command table, 64+16+48+16*8
-		// Command table offset; ADDR+1KB+i*256B
-		cmdheader[i].ctba = (addr + 1024 + i * 256);
-		cmdheader[i].ctbau = (addr + 1024 + i * 256) >> 32;
-		memset((void*)(cmdheader[i].ctba | ((QWORD)cmdheader[i].ctbau << 32)), 0, 256);
+		// Command table offset; ADDR+i*256B
+		cmdheader[i].ctba = (addr + i * 256);
+		cmdheader[i].ctbau = (addr + i * 256) >> 32;
+		memset((void*)(cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)), 0, 256);
 	}
 
 	// Start command engine
@@ -604,8 +922,11 @@ DWORD port_rebase(HBA_PORT* port)
 	OUTPUTTEXT(ERR01);
 	return 2;
 }
-DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer)
+DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer, DWORD cmd)
 {
+	if (!count) return 0;
+	if (count > 128) return 1;
+
 	// Clear pending interrupt bits
 	port->is = -1;
 	int slot = 0;// ahci_find_cmdslot(port);
@@ -647,7 +968,7 @@ DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer)
 
 	fis->fis_type = 0x27; // Register FIS - host to device
 	fis->c = 1; // Command
-	fis->command = ATA_CMD_READ_DMA_EX;
+	fis->command = cmd;
 	fis->featurel = 1; /* dma */
 
 	fis->lba0 = (sector >> 0) & 0xFF;
@@ -693,12 +1014,10 @@ DWORD READVD(BYTE* addr, BYTE size)
 	}
 	return x;
 }
-DWORD LoadingSATA(HBA_PORT* port)
+DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 {
-	// Use 1 page as buffer
-	QWORD page = 0x00018000;
 	// Read LBA 1: GPT Header
-	if (AHCIIO(port, 1, 1, (void*)page))
+	if (AHCIIO(port, 1, 1, (void*)page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -713,7 +1032,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 
 	// FIND NTFS SYSTEM PART
 	// Read partition table
-	if (AHCIIO(port, *((QWORD*)(page + 0x48)), 1, (void*)page))
+	if (AHCIIO(port, *((QWORD*)(page + 0x48)), 1, (void*)page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -738,7 +1057,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// Partition start sector LBA
 	QWORD partiionSector = *((QWORD *) (partEntry + 0x20));
 	// Read partition first sector
-	if (AHCIIO(port, partiionSector, 1, (void*)page))
+	if (AHCIIO(port, partiionSector, 1, (void*)page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -749,7 +1068,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 	// $MFT LBA
 	QWORD mftsector = BPB.hidden + (BPB.MFT * BPB.cluster);
 	// Read 2 sector file record of KERNEL.DLL file
-	if (AHCIIO(port, mftsector + (*MFT_RECORD << 1), 2, (void *) page))
+	if (AHCIIO(port, mftsector + (*MFT_RECORD << 1), 2, (void *) page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -797,7 +1116,7 @@ DWORD LoadingSATA(HBA_PORT* port)
 		QWORD sector = RUNLIST;
 		while (cluster--)
 		{
-			if (AHCIIO(port, sector, BPB.cluster, dst))
+			if (AHCIIO(port, sector, BPB.cluster, dst, ATA_CMD_READ_DMA_EX))
 			{
 				OUTPUTTEXT(ERR02);
 				return 1;

@@ -1,33 +1,6 @@
-#include <declspec.h>
-#include <types.h>
+#pragma section(".text")
 
-/*
-CODEDECL const BYTE __setrsp[] =
-{
-	0x58,             // POP RAX
-	0x48, 0x8B, 0xE1, // MOV RSP, RCX
-	0x48, 0xFF, 0xE0, // JMP RAX
-};
-*/
-CODEDECL const BYTE __getrsp[] =
-{
-	0x59,             // POP RCX
-	0x48, 0x8B, 0xC4, // MOV RAX, RSP
-	0x48, 0xFF, 0xE1, // JMP RCX
-};
-/*
-CODEDECL const BYTE __cli[] =
-{
-	0xFA, // CLI
-	0xC3, // RET
-};
-*/
-CODEDECL const BYTE __sti[] =
-{
-	0xFB, // STI
-	0xC3, // RET
-};
-CODEDECL char memset[] =
+__declspec(allocate(".text")) char memset[] =
 /*
 void *__cdecl memset(void *, int, unsigned long long)
 */
@@ -42,7 +15,7 @@ void *__cdecl memset(void *, int, unsigned long long)
 	0x5F,             // POP    RDI
 	0xC3,             // RETN
 };
-CODEDECL char memcpy[] =
+__declspec(allocate(".text")) char memcpy[] =
 /*
 void *__cdecl memcpy(void *, const void *, unsigned long long)
 */
@@ -58,8 +31,14 @@ void *__cdecl memcpy(void *, const void *, unsigned long long)
 	0x5E,             // POP  RSI
 	0xC3,             // RETN
 };
-CODEDECL char __lgdt[] =
+__declspec(allocate(".text")) const char __cli[] =
 {
-	0x0F, 0x01, 0x11, // LGDT [RCX]
-	0xC3              // RET
+	0xFA, // CLI
+	0xC3, // RET
+};
+__declspec(allocate(".text")) const char __setrsp[] =
+{
+	0x58,             // POP RAX
+	0x48, 0x8B, 0xE1, // MOV RSP, RCX
+	0x48, 0xFF, 0xE0, // JMP RAX
 };
