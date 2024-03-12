@@ -296,12 +296,6 @@ BIOSAPI DWORD COLOR_PLAETTE[] =
 	0xFFFF55,
 	0xFFFFFF
 };
-// DISK GUID
-BIOSAPI QWORD *GUID0 = (QWORD *) 0x00010010;
-// PART GUID
-BIOSAPI QWORD *GUID1 = (QWORD *) 0x00010020;
-// KERNEL.DLL MFT RECORD
-BIOSAPI const QWORD *MFT_RECORD = (QWORD *) 0x00010008;
 BIOSAPI const char ERR00[] = "ERR:PIO ENABLED\n";
 BIOSAPI const char ERR01[] = "AHCI LINK DOWN\n";
 BIOSAPI const char ERR02[] = "DISK READ ERROR\n";
@@ -328,6 +322,7 @@ QWORD empty_page()
 		if (!(PTM[i >> 3] & (1 << (i & 7))))
 		{
 			PTM[i >> 3] |= (1 << (i & 7));
+			memset(PAGING[i], 0, 4096);
 			return (QWORD) PAGING[i];
 		}
 	}
@@ -386,18 +381,14 @@ void setup_paging()
 
 	DWORD idx1 = 0;
 	DWORD idx2 = 0x1F8;
-	DWORD idx3 = 16;
 	QWORD SYSTEM = SYSTEM_PHY | 0x183;
 	QWORD KERNEL = KERNEL_PHY | 0x183;
-	QWORD VIDEOM = 0x02000083;// Not global page
 	while (idx1 < 8)
 	{
 		L31[idx1++] = SYSTEM;
 		L32[idx2++] = KERNEL;
-		L31[idx3++] = VIDEOM;
 		SYSTEM += 0x00200000;
 		KERNEL += 0x00200000;
-		VIDEOM += 0x00200000;
 	}
 	__writecr3((QWORD) PAGING);
 	memset((void *) 0x00200000, 0, 0x00E00000);
@@ -503,7 +494,7 @@ void mainCRTStartup()
 	else
 	{
 		OUTPUTTEXT(ERR05);
-		while (1);
+		while (1) __halt();
 	}
 }
 void FLUSHVIDEO()
@@ -540,7 +531,7 @@ void PAINTCHAR(BYTE x, BYTE c, DWORD cursor)
 	DWORD *pos = (DWORD *) SCREEN.A0; // 4 byte (32bit) pre pixel
 	pos += SCREEN.H * i * 16; // 16 pixel line pre text line
 	pos += j * 8; // 8 pixel column pre text column
-	BYTE *font = ((BYTE(*)[16]) 0x00001000)[x]; // 8*16 bit map of font
+	BYTE *font = ((BYTE(*)[16]) SYSTEM_TABLE.FONT)[x]; // 8*16 bit map of font
 	for (DWORD k = 0; k < 16; k++)
 	{
 		BYTE bit = font[k];
@@ -873,7 +864,7 @@ void stop_cmd(HBA_PORT* port)
 DWORD port_rebase(HBA_PORT* port)
 {
 	// Use 2 pages
-	QWORD addr = 0x00008000;
+	//QWORD addr = 0x00008000;
 	// Stop command engine
 	stop_cmd(port);
 
@@ -881,22 +872,25 @@ DWORD port_rebase(HBA_PORT* port)
 	// Command list entry maxim count  = 32
 	// Command list maxim size = 32*32 = 1024 per port
 	identity_mapping((port->clb | ((QWORD) port->clbu << 32)));
-	memset((void*)(port->clb | ((QWORD)port->clbu << 32)), 0, 1024);
+	//memset((void*)(port->clb | ((QWORD)port->clbu << 32)), 0, 1024);
 
 	// FIS entry size = 256B per port
 	identity_mapping((port->fb | ((QWORD) port->fbu << 32)));
-	memset((void*)(port->fb | ((QWORD)port->fbu << 32)), 0, 256);
+	//memset((void*)(port->fb | ((QWORD)port->fbu << 32)), 0, 256);
 
 	// Command table size = 256*32 = 8KiB per port
-	HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb | ((QWORD)port->clbu << 32));
-	for (int i = 0; i < 32; i++)
+	HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb | ((QWORD) port->clbu << 32));
+	int i = 0;
+	// for (; i < 32; i++)
 	{
 		//identity_mapping((QWORD) (cmdheader + i));
-		cmdheader[i].prdtl = 8; // 8 prdt entries per command table
+		//cmdheader[i].prdtl = 8; // 8 prdt entries per command table
+
 		// 256B per command table, 64+16+48+16*8
 		// Command table offset; ADDR+i*256B
-		cmdheader[i].ctba = (addr + i * 256);
-		cmdheader[i].ctbau = (addr + i * 256) >> 32;
+		//cmdheader[i].ctba = (addr + i * 256);
+		//cmdheader[i].ctbau = (addr + i * 256) >> 32;
+		identity_mapping((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)));
 		memset((void*)(cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)), 0, 256);
 	}
 
@@ -1017,7 +1011,7 @@ DWORD READVD(BYTE* addr, BYTE size)
 DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 {
 	// Read LBA 1: GPT Header
-	if (AHCIIO(port, 1, 1, (void*)page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, 1, 1, (void *) page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -1025,14 +1019,14 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 
 	// Assume GPT and check DISK GUID
 	QWORD *guid = (QWORD *) (page + 0x38);
-	if (guid[0] != GUID0[0] && guid[1] != GUID0[1])
+	if (guid[0] != BOOT_TABLE->GUID0[0] && guid[1] != BOOT_TABLE->GUID0[1])
 	{
 		return 1;
 	}
 
 	// FIND NTFS SYSTEM PART
 	// Read partition table
-	if (AHCIIO(port, *((QWORD*)(page + 0x48)), 1, (void*)page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, *((QWORD*)(page + 0x48)), 1, (void *) page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -1045,7 +1039,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 		if (!(partGUID[0] | partGUID[1]))
 			break;
 
-		if (partGUID[0] == GUID1[0] && partGUID[1] == GUID1[1])
+		if (partGUID[0] == BOOT_TABLE->GUID1[0] && partGUID[1] == BOOT_TABLE->GUID1[1])
 			break;
 	}
 	if (!(((QWORD*)(partEntry + 0x10))[0] | ((QWORD*)(partEntry + 0x10))[1]))
@@ -1057,18 +1051,18 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 	// Partition start sector LBA
 	QWORD partiionSector = *((QWORD *) (partEntry + 0x20));
 	// Read partition first sector
-	if (AHCIIO(port, partiionSector, 1, (void*)page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, partiionSector, 1, (void *) page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
 	}
 	NTFS_BPB BPB;
-	memcpy(&BPB, (void*)page, sizeof(NTFS_BPB));
+	memcpy(&BPB, (void *) (page), sizeof(NTFS_BPB));
 
 	// $MFT LBA
 	QWORD mftsector = BPB.hidden + (BPB.MFT * BPB.cluster);
 	// Read 2 sector file record of KERNEL.DLL file
-	if (AHCIIO(port, mftsector + (*MFT_RECORD << 1), 2, (void *) page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, mftsector + (BOOT_TABLE->MFT << 1), 2, (void *) page, ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
