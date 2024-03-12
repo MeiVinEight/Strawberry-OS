@@ -54,6 +54,7 @@ QWORD *page_entry(QWORD *PT, WORD idx)
 			memset((QWORD *) l, 0, 4096);
 			PT[idx] = l | 3;
 		}
+		if (PT[idx] & 0x80) return 0;
 		return (QWORD *) (PT[idx] & ~0xFFF);
 	}
 	return 0;

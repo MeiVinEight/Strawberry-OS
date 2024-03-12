@@ -6,6 +6,7 @@
 #include <memory/page.h>
 #include <system.h>
 #include <memory/segment.h>
+#include <memory/heap.h>
 
 typedef struct _MEMORY_REGION
 {
@@ -25,6 +26,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 {
 	setup_segment();
 	setup_system_table(table);
+	setup_heap();
 	setup_screen();
 
 	SCREEN.CLR = 0x0A;
