@@ -18,7 +18,7 @@ typedef struct _CONSOLE_SCREEN
 } CONSOLE_SCREEN;
 
 extern CONSOLE_SCREEN SCREEN;
-extern BYTE FONT[][16];
+extern BYTE(*FONT)[16];
 
 void SCROLLSCREEN();
 void MOVECURSOR();

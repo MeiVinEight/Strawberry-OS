@@ -5,16 +5,18 @@
 #include <types.h>
 #include <interrupt/8259A.h>
 #include <interrupt/apic.h>
+#include <memory/heap.h>
 
+#define INTERRUPT_COUNT 256
 
 CODEDECL const char MSG0100[] = "CONSTRUCT IDT";
 CODEDECL const char MSG0101[] = "SET IDTR ";
 
 CODEDECL void (*interrupt_eoi)(BYTE);
 CODEDECL DWORD USEAPIC = 0;
-CODEDECL INTERRUPT64 IDT[256];
-CODEDECL BYTE ISR[256][9];
-CODEDECL void (*(INTERRUPT_ROUTINE[256]))(INTERRUPT_STACK*);
+CODEDECL INTERRUPT64 *IDT;
+CODEDECL BYTE(*ISR)[9];
+CODEDECL void (**INTERRUPT_ROUTINE)(INTERRUPT_STACK*);
 CODEDECL const BYTE __isr[] =
 {
 	0x50,                         // PUSH RAX
@@ -132,6 +134,9 @@ void setup_interrupt()
 	OUTPUTTEXT(MSG0100);
 	LINEFEED();
 	// Init IDT: TYPE=0x0E:Interrupt Gate, S=0x08:Kernel code segment
+	IDT = (INTERRUPT64 *) HeapAlloc(HEAPK, sizeof(INTERRUPT64) * INTERRUPT_COUNT);
+	ISR = (BYTE(*)[9]) HeapAlloc(HEAPK, sizeof(ISR[0]) * INTERRUPT_COUNT);
+	INTERRUPT_ROUTINE = (void (**)(INTERRUPT_STACK *)) HeapAlloc(HEAPK, sizeof(void *) * INTERRUPT_COUNT);
 	for (DWORD i = 0; i < 256; i++)
 	{
 		IDT[i].S = 0x08;
@@ -160,7 +165,7 @@ void setup_interrupt()
 
 	// lidt
 	IDTR64 idtr;
-	idtr.Limit = 0xFFF;
+	idtr.Limit = (sizeof(INTERRUPT64) * INTERRUPT_COUNT) - 1;
 	*((QWORD*)&idtr.Base) = ((QWORD)IDT);
 	__lidt(&idtr);
 

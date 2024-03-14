@@ -2,6 +2,7 @@
 #include <declspec.h>
 #include <intrinsic.h>
 #include <system.h>
+#include <memory/heap.h>
 
 typedef struct _TEXT_MODE_MEMORY
 {
@@ -31,7 +32,7 @@ CODEDECL const DWORD COLOR_PALETTE[] =
 	0xFFFF55,
 	0xFFFFFF
 };
-CODEDECL BYTE FONT[256][16];
+CODEDECL BYTE(*FONT)[16];
 // CODEDECL TEXT_MODE_MEMORY GRAPHICS_MODE_TEXT;
 
 void FLUSHVIDEO()
@@ -193,12 +194,14 @@ void OUTPUTWORD(QWORD x)
 }
 void setup_screen()
 {
+	FONT = (BYTE(*)[16]) HeapAlloc(HEAPK, 4096);
+	memcpy(FONT, (void *) OST.FONT, 4096);
 	SCREEN.CSR = 0;
 	SCREEN.CLR = 0x0F;
 	TEXT_MODE.TEXT = (BYTE *) SCREEN.A0;
 	if (SCREEN.DM)
 	{
-		TEXT_MODE.TEXT = (BYTE *) 0x00010000;
+		TEXT_MODE.TEXT = (BYTE *) HeapAlloc(HEAPK, SCREEN.CLM * SCREEN.ROW * 2);
 		memset((void *) SCREEN.A0, 0, SCREEN.H * SCREEN.V * 4);
 	}
 	memset(TEXT_MODE.TEXT, 0, SCREEN.CLM * SCREEN.ROW * 2);

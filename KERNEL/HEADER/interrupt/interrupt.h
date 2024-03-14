@@ -54,7 +54,7 @@ typedef struct _INTERRUPT_STACK
 
 extern void (*interrupt_eoi)();
 extern DWORD USEAPIC;
-extern INTERRUPT64 IDT[];
+extern INTERRUPT64 *IDT;
 
 void setup_interrupt();
 void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*));

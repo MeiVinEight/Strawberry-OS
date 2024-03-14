@@ -66,6 +66,9 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\memory\segment.c">
       <Filter>SOURCE\memory</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\memory\heap.c">
+      <Filter>SOURCE\memory</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\types.h">
@@ -102,6 +105,9 @@
       <Filter>HEADER</Filter>
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\memory\segment.h">
+      <Filter>HEADER\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\memory\heap.h">
       <Filter>HEADER\memory</Filter>
     </ClInclude>
   </ItemGroup>

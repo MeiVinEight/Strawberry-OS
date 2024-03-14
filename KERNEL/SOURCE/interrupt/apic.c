@@ -71,19 +71,20 @@ void set_apic_address()
 {
 	QWORD apic_base_msr = __readmsr(IA32_APIC_BASE_MSR);
 	QWORD apic_base = apic_base_msr & (~0xFFF);
-	OUTPUTTEXT(MSG0403);
-	PRINTRAX(apic_base, 16);
-	LINEFEED();
+	QWORD apic_base_linear = apic_base | 0xFFFF800000000000ULL;
 	// Hardware enable APIC
 	// apic_base |= (1 << 11);
 	// __writemsr(IA32_APIC_BASE_MSR, apic_base_msr);
 	// APIC Registers base
-	APIC_REGISTERS = (DWORD(*)[4]) apic_base;
-	if (identity_mapping(apic_base, 0))
+	APIC_REGISTERS = (DWORD(*)[4]) apic_base_linear;
+	if (linear_mapping(apic_base, apic_base_linear, 0))
 	{
 		OUTPUTTEXT(MSG0404);
 		while (1) __halt();
 	}
+	OUTPUTTEXT(MSG0403);
+	PRINTRAX(apic_base_linear, 16);
+	LINEFEED();
 }
 void eoi_apic(BYTE id)
 {
