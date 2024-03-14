@@ -59,7 +59,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	setup_timer();
 	setup_paging();
 	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
-	MEMORY_REGION *end = *((MEMORY_REGION **) OST.MMAP);
+	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | 0xFFFF800000000000ULL);
 	QWORD usable = 0;
 	OUTPUTTEXT("Base Address       Length             Type\n");
 	//          0000000000000000 | 0000000000000000 | 00000000

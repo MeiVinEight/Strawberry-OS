@@ -40,6 +40,7 @@
 #define SYSTEM_PHY 0x00000000
 #define KERNEL_PHY 0x01000000
 
+#define SYSTEM_LNR 0xFFFF800000000000ULL
 #define KERNEL_LNR 0xFFFFFFFFFF000000ULL
 
 
@@ -311,10 +312,50 @@ BIOSAPI const char DVC07E015AD[] = "VMware SATA AHCI controller";
 BIOSAPI const char DVC06D38086[] = "Intel(R) 400 Series Chipset Family SATA AHCI Controller";
 BIOSAPI const char DVCA2828086[] = "Intel Corporation 200 Series PCH SATA controller [AHCI mode]";
 BIOSAPI BYTE PTM[PAGE_COUNT >> 3] = {0};
-BIOSAPI QWORD(*const PAGING)[512] = (QWORD(*)[512]) 0x00100000;
-BIOSAPI STBRBOOT *BOOT_TABLE = (STBRBOOT *) 0x00010000;
+BIOSAPI QWORD(*PAGING)[512] = (QWORD(*)[512]) 0x00100000;
+BIOSAPI STBRBOOT *BOOT_TABLE = (STBRBOOT *) (0x00010000 | SYSTEM_LNR);
 BIOSAPI OS_SYSTEM_TABLE SYSTEM_TABLE;
 
+QWORD physical_mapping(QWORD linear)
+{
+	WORD idx0 = (linear >> 39) & 0x1FF;
+	WORD idx1 = (linear >> 30) & 0x1FF;
+	WORD idx2 = (linear >> 21) & 0x1FF;
+	WORD idx3 = (linear >> 12) & 0x1FF;
+
+	QWORD *L0 = (QWORD *) (__readcr3() | SYSTEM_LNR);
+	if (!(L0[idx0] | 1))
+	{
+		return ~(0ULL);
+	}
+
+	QWORD *L1 = (QWORD *) ((L0[idx0] & ~0xFFF) | SYSTEM_LNR);
+	if (!(L1[idx1] | 1))
+	{
+		return ~(0ULL);
+	}
+	if (L1[idx1] & 0x80)
+	{
+		return (L1[idx1] & ~0xFFF) + (linear & ((1 << 30) - 1));
+	}
+
+	QWORD *L2 = (QWORD *) ((L1[idx1] & ~0xFFF) | SYSTEM_LNR);
+	if (!(L2[idx2] | 1))
+	{
+		return ~(0ULL);
+	}
+	if (L2[idx2] & 0x80)
+	{
+		return (L2[idx2] & ~0xFFF) + (linear & ((1 << 21) - 1));
+	}
+
+	QWORD *L3 = (QWORD *) ((L2[idx2] & ~0xFFF) | SYSTEM_LNR);
+	if (!(L3[idx3] & 1))
+	{
+		return ~(0ULL);
+	}
+	return (L3[idx3] & ~0xFFF) + (linear & ((1 << 12) - 1));
+}
 QWORD empty_page()
 {
 	for (DWORD i = 0; i < PAGE_COUNT; i++)
@@ -322,7 +363,6 @@ QWORD empty_page()
 		if (!(PTM[i >> 3] & (1 << (i & 7))))
 		{
 			PTM[i >> 3] |= (1 << (i & 7));
-			memset(PAGING[i], 0, 4096);
 			return (QWORD) PAGING[i];
 		}
 	}
@@ -345,38 +385,44 @@ QWORD *page_entry(QWORD *PT, WORD idx)
 			// Clear 4K page
 			memset((QWORD *) l, 0, 4096);
 			// Table present and R/W
-			PT[idx] = l | 3;
+			PT[idx] = physical_mapping(l) | 3;
 		}
-		return (QWORD *) (PT[idx] & ~0xFFF);
+		return (QWORD *) ((PT[idx] & ~0xFFF) | SYSTEM_LNR);
 	}
 	return 0;
 }
 void identity_mapping(QWORD addr)
 {
+	QWORD phy = addr & 0x00007FFFFFFFFFFFULL;
 	WORD idx0 = (addr >> 39) & 0x1FF;
 	WORD idx1 = (addr >> 30) & 0x1FF;
 	WORD idx2 = (addr >> 21) & 0x1FF;
-	QWORD *L2 = page_entry(page_entry((QWORD *) __readcr3(), idx0), idx1);
+	QWORD *L2 = page_entry(page_entry((QWORD *) (__readcr3() | SYSTEM_LNR), idx0), idx1);
 	if (L2 && !(L2[idx2] & 1))
 	{
-		L2[idx2] = ((addr >> 21) << 21) | 0x83;
+		L2[idx2] = ((phy >> 21) << 21) | 0x83;
 	}
 }
-void setup_paging()
+BIOSAPI BYTE setrsp[] =
 {
-	SYSTEM_TABLE.PTME = (QWORD) PTM;
-	SYSTEM_TABLE.PAGE = (QWORD) PAGING;
+	0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0xFF, // MOV RAX, FFFF800000000000
+	0x48, 0x09, 0xC4,                                           // OR RSP, RAX
+	0xC3,                                                       // RET
+};
+void setup_paging(void(*stage)())
+{
 	// Clear 1M Memory
 	memset(PAGING, 0, 0x00100000);
 	QWORD *L1 = (QWORD *) PAGING[0];
-	L1[0] = (QWORD) PAGING[1] | 3;
+	L1[0x100] = (QWORD) PAGING[1] | 3;
+	L1[0x000] = L1[0x100];
 	QWORD *L2 = PAGING[1];
-	L2[0] = (QWORD) PAGING[2] | 3;
+	L2[0x000] = (QWORD) PAGING[2] | 3;
 	QWORD *L31 = PAGING[2];
 
-	L1[511] = (QWORD) PAGING[3] | 3;
+	L1[0x1FF] = (QWORD) PAGING[3] | 3;
 	L2 = PAGING[3];
-	L2[511] = (QWORD) PAGING[4] | 3;
+	L2[0x1FF] = (QWORD) PAGING[4] | 3;
 	QWORD *L32 = PAGING[4];
 
 	DWORD idx1 = 0;
@@ -391,15 +437,18 @@ void setup_paging()
 		KERNEL += 0x00200000;
 	}
 	__writecr3((QWORD) PAGING);
-	memset((void *) 0x00200000, 0, 0x00E00000);
-	memset((void *) KERNEL_LNR, 0, 0x01000000);
+	PAGING = (QWORD(*)[512])((QWORD) PAGING | SYSTEM_LNR);
 	PTM[0] = 0x1F;
+	memset((void *) (0x00200000 + SYSTEM_LNR), 0, 0x00E00000);
+	memset((void *) (0x00000000 + KERNEL_LNR), 0, 0x01000000);
+	((void(*)()) setrsp)();
+	((void(*)()) ((QWORD) stage | SYSTEM_LNR))();
 }
 void setup_screen()
 {
-	SYSTEM_TABLE.FONT = 0x00001000;
+	SYSTEM_TABLE.FONT = 0x00001000 | SYSTEM_LNR;
 	SYSTEM_TABLE.SCRN = (QWORD) &SCREEN;
-	SCREEN.A0 = BOOT_TABLE->A0;
+	SCREEN.A0 = BOOT_TABLE->A0 | SYSTEM_LNR;
 	SCREEN.H = BOOT_TABLE->H;
 	SCREEN.V = BOOT_TABLE->V;
 	SCREEN.ROW = SCREEN.V;
@@ -413,7 +462,7 @@ void setup_screen()
 	{
 		SCREEN.ROW >>= 4;
 		SCREEN.CLM >>= 3;
-		TEXT_MODE.TEXT = (BYTE *) 0x00020000;
+		TEXT_MODE.TEXT = (BYTE *) (0x00020000 | SYSTEM_LNR);
 		QWORD beg = SCREEN.A0;
 		QWORD end = beg + (SCREEN.H * SCREEN.V * 4);
 		while (beg < end)
@@ -432,8 +481,8 @@ void setup_acpi()
 		OUTPUTTEXT(MSG0002);
 		char buf[8] = "RSD PTR ";
 		QWORD sig = *((QWORD *) buf);
-		QWORD *start = (QWORD *) 0x000E0000;
-		while (start < (QWORD *) 0x00100000)
+		QWORD *start = (QWORD *) (0x000E0000 | SYSTEM_LNR);
+		while (start < (QWORD *) (0x00100000 | SYSTEM_LNR))
 		{
 			if (sig == *start)
 			{
@@ -442,7 +491,7 @@ void setup_acpi()
 			start += 2;
 		}
 	}
-	SYSTEM_TABLE.RSDP = BOOT_TABLE->RSDP;
+	SYSTEM_TABLE.RSDP = BOOT_TABLE->RSDP | SYSTEM_LNR;
 }
 BIOSAPI const char HEXDIG[] = "0123456789ABCDEF";
 void PRINTRAX(QWORD x, BYTE s)
@@ -456,15 +505,17 @@ void PRINTRAX(QWORD x, BYTE s)
 	}
 	OUTPUTTEXT(buf);
 }
-void mainCRTStartup()
+void main()
 {
-	SYSTEM_TABLE.BLAT = 0x00010000;
-	SYSTEM_TABLE.MMAP = 0x00003018;
-	setup_paging();
+	PAGING[0][0] = 0;
+	SYSTEM_TABLE.BLAT = (0x00010000 | SYSTEM_LNR);
+	SYSTEM_TABLE.MMAP = (0x00003018 | SYSTEM_LNR);
+	SYSTEM_TABLE.PTME = (QWORD) PTM;
+	SYSTEM_TABLE.PAGE = (QWORD) PAGING;
 	setup_screen();
 	OUTPUTTEXT(MSG0000);
 
-	char buf[4] = {'A', '0', ' ', 0};
+	char buf[4] = { 'A', '0', ' ', 0 };
 	OUTPUTTEXT(buf);
 	PRINTRAX(SCREEN.A0, 16);
 	LINEFEED();
@@ -496,6 +547,10 @@ void mainCRTStartup()
 		OUTPUTTEXT(ERR05);
 		while (1) __halt();
 	}
+}
+void mainCRTStartup()
+{
+	setup_paging(main);
 }
 void FLUSHVIDEO()
 {
@@ -756,7 +811,7 @@ DWORD ahci_controller_setup(DWORD dvc)
 	// AHCI Port
 	HBA_PORT *port = abar->ports;
 	// Use 1 page as buffer
-	QWORD page = 0x0000A000;
+	QWORD page = (0x0000A000 | SYSTEM_LNR);
 	while (pi && find)
 	{
 		if (pi & 1)
@@ -766,7 +821,7 @@ DWORD ahci_controller_setup(DWORD dvc)
 				// Try to read kernel
 				if (!port_rebase(port))
 				{
-					AHCIIO(port, 0,1, (void *) page, ATA_CMD_IDENTIFY_DEVICE);
+					AHCIIO(port, 0, 1, (void *) physical_mapping(page), ATA_CMD_IDENTIFY_DEVICE);
 					BYTE(*buffer)[2] = (BYTE(*)[2]) page;
 					for (DWORD i = 0; i < 256; i++)
 					{
@@ -803,7 +858,7 @@ void* pci_enable_mmio(DWORD device, DWORD addr)
 {
 	// Read BAR
 	__outdword(0x0CF8, device + addr);
-	DWORD bar = __indword(0x0CFC);
+	QWORD bar = __indword(0x0CFC);
 	// Check BAR PIO Mode
 	if (bar & 1)
 	{
@@ -811,6 +866,7 @@ void* pci_enable_mmio(DWORD device, DWORD addr)
 		return 0;
 	}
 	bar &= ~0xF;
+	bar |= SYSTEM_LNR;
 	identity_mapping(bar);
 	// Use base as mmio address, write to BAR
 	// __outdword(0x0CF8, device + addr);
@@ -871,15 +927,15 @@ DWORD port_rebase(HBA_PORT* port)
 	// Command list entry size = 32
 	// Command list entry maxim count  = 32
 	// Command list maxim size = 32*32 = 1024 per port
-	identity_mapping((port->clb | ((QWORD) port->clbu << 32)));
+	identity_mapping((port->clb | ((QWORD) port->clbu << 32)) | SYSTEM_LNR);
 	//memset((void*)(port->clb | ((QWORD)port->clbu << 32)), 0, 1024);
 
 	// FIS entry size = 256B per port
-	identity_mapping((port->fb | ((QWORD) port->fbu << 32)));
+	identity_mapping((port->fb | ((QWORD) port->fbu << 32)) | SYSTEM_LNR);
 	//memset((void*)(port->fb | ((QWORD)port->fbu << 32)), 0, 256);
 
 	// Command table size = 256*32 = 8KiB per port
-	HBA_CMD_HEADER* cmdheader = (HBA_CMD_HEADER*)(port->clb | ((QWORD) port->clbu << 32));
+	HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *) ((port->clb | ((QWORD) port->clbu << 32)) | SYSTEM_LNR);
 	int i = 0;
 	// for (; i < 32; i++)
 	{
@@ -890,8 +946,8 @@ DWORD port_rebase(HBA_PORT* port)
 		// Command table offset; ADDR+i*256B
 		//cmdheader[i].ctba = (addr + i * 256);
 		//cmdheader[i].ctbau = (addr + i * 256) >> 32;
-		identity_mapping((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)));
-		memset((void*)(cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)), 0, 256);
+		identity_mapping((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)) | SYSTEM_LNR);
+		memset((void *) ((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)) | SYSTEM_LNR), 0, 256);
 	}
 
 	// Start command engine
@@ -927,7 +983,7 @@ DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer, DWORD cmd)
 	if (slot == -1)
 		return 2;
 
-	HBA_CMD_HEADER* cmdh = (HBA_CMD_HEADER*)(port->clb | ((QWORD)port->clbu << 32));
+	HBA_CMD_HEADER *cmdh = (HBA_CMD_HEADER *) ((port->clb | ((QWORD) port->clbu << 32)) | 0xFFFF800000000000ULL);
 	cmdh += slot;
 	// Command FIS size
 	cmdh->cfl = 5; // sizeof(FIS_REG_H2D) / sizeof(DWORD)
@@ -938,7 +994,7 @@ DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer, DWORD cmd)
 	// PRDT entries count
 	cmdh->prdtl = ((count - 1) >> 4) + 1; // UPPER BOUND (count / 4)
 
-	HBA_CMD_TBL* tbl = (HBA_CMD_TBL*)(cmdh->ctba | ((QWORD)cmdh->ctbau << 32));
+	HBA_CMD_TBL *tbl = (HBA_CMD_TBL *) ((cmdh->ctba | ((QWORD) cmdh->ctbau << 32)) | 0xFFFF800000000000ULL);
 	memset(tbl, 0, sizeof(HBA_CMD_TBL) + (cmdh->prdtl * sizeof(HBA_PRDT_ENTRY)));
 	// 8KiB (16 sectors) per PRDT
 	QWORD buf = (QWORD)buffer;
@@ -1011,7 +1067,7 @@ DWORD READVD(BYTE* addr, BYTE size)
 DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 {
 	// Read LBA 1: GPT Header
-	if (AHCIIO(port, 1, 1, (void *) page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, 1, 1, (void *) physical_mapping(page), ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -1026,7 +1082,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 
 	// FIND NTFS SYSTEM PART
 	// Read partition table
-	if (AHCIIO(port, *((QWORD*)(page + 0x48)), 1, (void *) page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, *((QWORD *) (page + 0x48)), 1, (void *) physical_mapping(page), ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -1051,7 +1107,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 	// Partition start sector LBA
 	QWORD partiionSector = *((QWORD *) (partEntry + 0x20));
 	// Read partition first sector
-	if (AHCIIO(port, partiionSector, 1, (void *) page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, partiionSector, 1, (void *) physical_mapping(page), ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;
@@ -1062,7 +1118,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 	// $MFT LBA
 	QWORD mftsector = BPB.hidden + (BPB.MFT * BPB.cluster);
 	// Read 2 sector file record of KERNEL.DLL file
-	if (AHCIIO(port, mftsector + (BOOT_TABLE->MFT << 1), 2, (void *) page, ATA_CMD_READ_DMA_EX))
+	if (AHCIIO(port, mftsector + (BOOT_TABLE->MFT << 1), 2, (void *) physical_mapping(page), ATA_CMD_READ_DMA_EX))
 	{
 		OUTPUTTEXT(ERR02);
 		return 1;

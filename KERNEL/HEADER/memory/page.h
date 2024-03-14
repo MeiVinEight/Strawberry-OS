@@ -12,5 +12,6 @@ extern QWORD(*PAGING)[512];
 void setup_paging();
 DWORD linear_mapping(QWORD, QWORD, BYTE);
 DWORD identity_mapping(QWORD, BYTE);
+QWORD physical_mapping(QWORD);
 
 #endif
