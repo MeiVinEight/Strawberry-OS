@@ -64,7 +64,6 @@ CODEDECL const char MSG0400[] = "SETUP APIC\n";
 CODEDECL const char MSG0401[] = "SETUP APIC TIMER ";
 CODEDECL const char MSG0402[] = "APIC TIMER FREQUENCY ";
 CODEDECL const char MSG0403[] = "APIC REGISTER ADDRESS ";
-CODEDECL const char MSG0404[] = "APIC MEMORY MAPPING FAILED\n";
 CODEDECL DWORD (*APIC_REGISTERS)[4];
 
 void set_apic_address()
@@ -77,11 +76,6 @@ void set_apic_address()
 	// __writemsr(IA32_APIC_BASE_MSR, apic_base_msr);
 	// APIC Registers base
 	APIC_REGISTERS = (DWORD(*)[4]) apic_base_linear;
-	if (linear_mapping(apic_base, apic_base_linear, 0))
-	{
-		OUTPUTTEXT(MSG0404);
-		while (1) __halt();
-	}
 	OUTPUTTEXT(MSG0403);
 	PRINTRAX(apic_base_linear, 16);
 	LINEFEED();

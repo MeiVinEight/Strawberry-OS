@@ -268,7 +268,7 @@ DWORD pci_device(DWORD, DWORD);
 DWORD ahci_controller_setup(DWORD);
 void* pci_enable_mmio(DWORD, DWORD);
 DWORD check_type(HBA_PORT*);
-DWORD port_rebase(HBA_PORT*);
+DWORD start_cmd(HBA_PORT*);
 DWORD AHCIIO(HBA_PORT *, QWORD, WORD, void *, DWORD);
 DWORD LoadingSATA(HBA_PORT*, QWORD);
 void stop_cmd(HBA_PORT*);
@@ -356,53 +356,6 @@ QWORD physical_mapping(QWORD linear)
 	}
 	return (L3[idx3] & ~0xFFF) + (linear & ((1 << 12) - 1));
 }
-QWORD empty_page()
-{
-	for (DWORD i = 0; i < PAGE_COUNT; i++)
-	{
-		if (!(PTM[i >> 3] & (1 << (i & 7))))
-		{
-			PTM[i >> 3] |= (1 << (i & 7));
-			return (QWORD) PAGING[i];
-		}
-	}
-	return 0;
-}
-QWORD *page_entry(QWORD *PT, WORD idx)
-{
-	if (PT && (idx < 512))
-	{
-		if (!(PT[idx] & 1))
-		{
-			// PT[idx] not present, find an empty 4K page
-			QWORD l = empty_page();
-			if (!l)
-			{
-				// No empty 4K page
-				OUTPUTTEXT(ERR06);
-				while (1) __halt();
-			}
-			// Clear 4K page
-			memset((QWORD *) l, 0, 4096);
-			// Table present and R/W
-			PT[idx] = physical_mapping(l) | 3;
-		}
-		return (QWORD *) ((PT[idx] & ~0xFFF) | SYSTEM_LNR);
-	}
-	return 0;
-}
-void identity_mapping(QWORD addr)
-{
-	QWORD phy = addr & 0x00007FFFFFFFFFFFULL;
-	WORD idx0 = (addr >> 39) & 0x1FF;
-	WORD idx1 = (addr >> 30) & 0x1FF;
-	WORD idx2 = (addr >> 21) & 0x1FF;
-	QWORD *L2 = page_entry(page_entry((QWORD *) (__readcr3() | SYSTEM_LNR), idx0), idx1);
-	if (L2 && !(L2[idx2] & 1))
-	{
-		L2[idx2] = ((phy >> 21) << 21) | 0x83;
-	}
-}
 BIOSAPI BYTE setrsp[] =
 {
 	0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xFF, 0xFF, // MOV RAX, FFFF800000000000
@@ -417,23 +370,22 @@ void setup_paging(void(*stage)())
 	L1[0x100] = (QWORD) PAGING[1] | 3;
 	L1[0x000] = L1[0x100];
 	QWORD *L2 = PAGING[1];
-	L2[0x000] = (QWORD) PAGING[2] | 3;
-	QWORD *L31 = PAGING[2];
+	// 4 * 1G PAGE
+	L2[0x000] = (0ULL << 30) | 0x183;
+	L2[0x001] = (1ULL << 30) | 0x183;
+	L2[0x002] = (2ULL << 30) | 0x183;
+	L2[0x003] = (3ULL << 30) | 0x183;
 
 	L1[0x1FF] = (QWORD) PAGING[3] | 3;
 	L2 = PAGING[3];
 	L2[0x1FF] = (QWORD) PAGING[4] | 3;
 	QWORD *L32 = PAGING[4];
 
-	DWORD idx1 = 0;
 	DWORD idx2 = 0x1F8;
-	QWORD SYSTEM = SYSTEM_PHY | 0x183;
 	QWORD KERNEL = KERNEL_PHY | 0x183;
-	while (idx1 < 8)
+	while (idx2 < 0x200)
 	{
-		L31[idx1++] = SYSTEM;
 		L32[idx2++] = KERNEL;
-		SYSTEM += 0x00200000;
 		KERNEL += 0x00200000;
 	}
 	__writecr3((QWORD) PAGING);
@@ -463,13 +415,6 @@ void setup_screen()
 		SCREEN.ROW >>= 4;
 		SCREEN.CLM >>= 3;
 		TEXT_MODE.TEXT = (BYTE *) (0x00020000 | SYSTEM_LNR);
-		QWORD beg = SCREEN.A0;
-		QWORD end = beg + (SCREEN.H * SCREEN.V * 4);
-		while (beg < end)
-		{
-			identity_mapping(beg);
-			beg += 0x00200000;
-		}
 		memset((void *) SCREEN.A0, 0, SCREEN.H * SCREEN.V * 4);
 	}
 	memset(TEXT_MODE.TEXT, 0, SCREEN.CLM *SCREEN.ROW * 2);
@@ -552,20 +497,6 @@ void mainCRTStartup()
 {
 	setup_paging(main);
 }
-void FLUSHVIDEO()
-{
-	// memcpy((void *) SCREEN.A0, (void *) SCREEN.A1, SCREEN.H * SCREEN.V * 4);
-}
-void FLUSHLINE(DWORD start, DWORD count)
-{
-	/*
-	if (SCREEN.DM)
-	{
-		DWORD offset = SCREEN.H * 4 * 16 * start;
-		memcpy((void *) (SCREEN.A0 + offset), (void *) (SCREEN.A1 + offset), SCREEN.H * 4 * 16 * count);
-	}
-	*/
-}
 void PAINTCURSOR(DWORD cursor)
 {
 	DWORD i = cursor / SCREEN.CLM;
@@ -620,7 +551,6 @@ void SCROLLSCREEN()
 		memcpy((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4));
 		memset((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 16 * 4);
 		TEXT_MODE.CURSOR -= SCREEN.CLM;
-		FLUSHVIDEO();
 	}
 }
 void MOVECURSOR()
@@ -663,7 +593,6 @@ void OUTPUTTEXT(const char *s)
 				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
 				SCREEN.CSR += SCREEN.CLM;
 				MOVECURSOR();
-				FLUSHLINE((SCREEN.CSR / SCREEN.CLM) - 1, 2);
 				break;
 			}
 			default:
@@ -819,7 +748,7 @@ DWORD ahci_controller_setup(DWORD dvc)
 			if (check_type(port) == AHCI_DEVICE_SATA)
 			{
 				// Try to read kernel
-				if (!port_rebase(port))
+				if (!start_cmd(port))
 				{
 					AHCIIO(port, 0, 1, (void *) physical_mapping(page), ATA_CMD_IDENTIFY_DEVICE);
 					BYTE(*buffer)[2] = (BYTE(*)[2]) page;
@@ -867,7 +796,6 @@ void* pci_enable_mmio(DWORD device, DWORD addr)
 	}
 	bar &= ~0xF;
 	bar |= SYSTEM_LNR;
-	identity_mapping(bar);
 	// Use base as mmio address, write to BAR
 	// __outdword(0x0CF8, device + addr);
 	// __outdword(0x0CFC, base | (bar & 0xF));
@@ -917,38 +845,12 @@ void stop_cmd(HBA_PORT* port)
 	// Wait until FR (bit14), CR (bit15) are cleared;
 	while (port->cmd & (HBA_PORT_CMD_FR | HBA_PORT_CMD_CR));
 }
-DWORD port_rebase(HBA_PORT* port)
+DWORD start_cmd(HBA_PORT* port)
 {
 	// Use 2 pages
 	//QWORD addr = 0x00008000;
 	// Stop command engine
 	stop_cmd(port);
-
-	// Command list entry size = 32
-	// Command list entry maxim count  = 32
-	// Command list maxim size = 32*32 = 1024 per port
-	identity_mapping((port->clb | ((QWORD) port->clbu << 32)) | SYSTEM_LNR);
-	//memset((void*)(port->clb | ((QWORD)port->clbu << 32)), 0, 1024);
-
-	// FIS entry size = 256B per port
-	identity_mapping((port->fb | ((QWORD) port->fbu << 32)) | SYSTEM_LNR);
-	//memset((void*)(port->fb | ((QWORD)port->fbu << 32)), 0, 256);
-
-	// Command table size = 256*32 = 8KiB per port
-	HBA_CMD_HEADER *cmdheader = (HBA_CMD_HEADER *) ((port->clb | ((QWORD) port->clbu << 32)) | SYSTEM_LNR);
-	int i = 0;
-	// for (; i < 32; i++)
-	{
-		//identity_mapping((QWORD) (cmdheader + i));
-		//cmdheader[i].prdtl = 8; // 8 prdt entries per command table
-
-		// 256B per command table, 64+16+48+16*8
-		// Command table offset; ADDR+i*256B
-		//cmdheader[i].ctba = (addr + i * 256);
-		//cmdheader[i].ctbau = (addr + i * 256) >> 32;
-		identity_mapping((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)) | SYSTEM_LNR);
-		memset((void *) ((cmdheader[i].ctba | ((QWORD) cmdheader[i].ctbau << 32)) | SYSTEM_LNR), 0, 256);
-	}
 
 	// Start command engine
 	// Wait until CR (bit15) is cleared
