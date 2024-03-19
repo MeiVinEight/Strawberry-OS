@@ -5,15 +5,49 @@
 #include <interrupt/interrupt.h>
 #include <intrinsic.h>
 #include <system.h>
+#include <memory/heap.h>
+#include <memory/block.h>
 
 #define SYSTEM_LINEAR 0xFFFF800000000000ULL
 
+typedef struct _MEMORY_REGION
+{
+	QWORD A;
+	QWORD L;
+	DWORD F;
+	DWORD X;
+} MEMORY_REGION;
+
 CODEDECL const char MSG0500[] = "SETUP PAGING\n";
+CODEDECL const char MSG0501[] = "FREE MEMORY ";
+CODEDECL const char MSG0502[] = "Base Address       Length             Height\n";
 CODEDECL BYTE PTM[PAGE_COUNT >> 3];
 CODEDECL QWORD(*PAGING)[512];
+CODEDECL MEMORY_BLOCK *MEMORY_MAP;
 
 void interrupt_PF(INTERRUPT_STACK* stack)
 {
+	SCREEN.CLR = 0x0C;
+	char buf[5] = { '#', 'P', 'F', 0, 0 };
+	OUTPUTTEXT(buf);
+	SCREEN.CLR = 0x0F;
+	LINEFEED();
+	buf[0] = 'C';
+	buf[1] = 'R';
+	buf[2] = '2';
+	buf[3] = ' ';
+	OUTPUTTEXT(buf);
+	PRINTRAX(__readcr2(), 16);
+	LINEFEED();
+	buf[0] = 'R';
+	buf[1] = 'I';
+	buf[2] = 'P';
+	buf[3] = ' ';
+	OUTPUTTEXT(buf);
+	PRINTRAX(stack->RIP, 16);
+	LINEFEED();
+	while (1) __halt();
+	/*
 	if (stack->ERROR == 0)
 	{
 		if (identity_mapping(__readcr2(), 0))
@@ -23,11 +57,7 @@ void interrupt_PF(INTERRUPT_STACK* stack)
 			while (1) __halt();
 		}
 	}
-}
-void setup_paging()
-{
-	OUTPUTTEXT(MSG0500);
-	register_interrupt(0x0E, interrupt_PF);
+	*/
 }
 QWORD empty_page()
 {
@@ -137,4 +167,64 @@ QWORD physical_mapping(QWORD linear)
 		return ~(0ULL);
 	}
 	return (L3[idx3] & ~0xFFF) + (linear & ((1 << 12) - 1));
+}
+void ForeachMemoryMap(MEMORY_BLOCK *block, int height)
+{
+	if (block)
+	{
+		DWORD split = 0x00207C20; // " | "
+		ForeachMemoryMap(block->L, height + 1);
+		PRINTRAX(block->A, 16);
+		OUTPUTTEXT((char *) &split);
+		PRINTRAX(block->S, 16);
+		OUTPUTTEXT((char *) &split);
+		PRINTRAX(height, 2);
+		LINEFEED();
+		ForeachMemoryMap(block->R, height + 1);
+	}
+}
+void setup_paging()
+{
+	OUTPUTTEXT(MSG0500);
+	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
+	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | SYSTEM_LINEAR);
+	QWORD usable = 0;
+	QWORD total = 0;
+	while (beg < end)
+	{
+		if (beg->F == 1)
+		{
+			if (beg->A >= 0x03000000ULL)
+			{
+				MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
+				memset(block, 0, sizeof(MEMORY_BLOCK));
+				block->A = beg->A;
+				block->S = beg->L;
+				usable += block->S;
+				InsertMemoryNode(&MEMORY_MAP, block);
+			}
+			else if (beg->L >= (0x03000000ULL - beg->A))
+			{
+				MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
+				memset(block, 0, sizeof(MEMORY_BLOCK));
+				block->A = 0x03000000;
+				block->S = beg->L - (0x03000000ULL - beg->A);
+				usable += block->S;
+				InsertMemoryNode(&MEMORY_MAP, block);
+			}
+		}
+		total += beg->L;
+		beg++;
+	}
+	OUTPUTTEXT(MSG0502);
+	//          0000000000000000 | 0000000000000000 | 00
+	ForeachMemoryMap(MEMORY_MAP, 1);
+	OUTPUTTEXT(MSG0501);
+	PRINTRAX(usable, 16);
+	OUTCHAR(' ');
+	OUTCHAR('/');
+	OUTCHAR(' ');
+	PRINTRAX(total, 16);
+	LINEFEED();
+	register_interrupt(0x0E, interrupt_PF);
 }
