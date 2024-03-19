@@ -8,6 +8,6 @@ extern QWORD HEAPK;
 void setup_heap();
 
 void *HeapAlloc(QWORD, QWORD);
-void HeapFree(QWORD);
+void HeapFree(const void *);
 
 #endif
