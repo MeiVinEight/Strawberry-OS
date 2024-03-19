@@ -3,14 +3,14 @@
 #include <memory/page.h>
 
 #define KERNEL_HEAP_PHYSICAL 0x02000000
-#define KERNEL_HEAP_LINEAR   0xFFFFFFFFFE000000
+#define KERNEL_HEAP_LINEAR   0xFFFFFFFFF0000000
 #define HEAP_MASK (~(0ULL))
 
 CODEDECL QWORD HEAPK;
 
 void setup_heap()
 {
-	// Static allocate 0x03000000 + 16M to 0xFFFFFFFFFE000000 as kernel heap
+	// Static allocate 0x02000000 + 16M to 0xFFFFFFFFF0000000 as kernel heap
 	HEAPK = KERNEL_HEAP_LINEAR;
 	QWORD linear = HEAPK;
 	for (QWORD addr = KERNEL_HEAP_PHYSICAL; addr < 0x03000000;)
@@ -71,9 +71,9 @@ void *HeapAlloc(QWORD heap, QWORD size)
 	}
 	return 0;
 }
-void HeapFree(QWORD p)
+void HeapFree(const void *p)
 {
-	QWORD *block = ((QWORD *) (p - 8));
+	QWORD *block = ((QWORD *) (((QWORD) p) - 8));
 	// Clear bit 0
 	*block = (*block >> 1) << 1;
 }
