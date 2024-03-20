@@ -10,7 +10,6 @@ CODEDECL OS_SYSTEM_TABLE OST;
 void setup_system_table(OS_SYSTEM_TABLE * table)
 {
 	memcpy(&OST, table, sizeof(OS_SYSTEM_TABLE));
-	memcpy(FONT, (void *) OST.FONT, 4096);
 	memcpy(PTM, (void *) OST.PTME, PAGE_COUNT >> 3);
 	PAGING = (QWORD(*)[512]) OST.PAGE;
 	memcpy(&SCREEN, (void *) OST.SCRN, sizeof(CONSOLE_SCREEN));

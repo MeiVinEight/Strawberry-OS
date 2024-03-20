@@ -8,14 +8,6 @@
 #include <memory/segment.h>
 #include <memory/heap.h>
 
-typedef struct _MEMORY_REGION
-{
-	QWORD A;
-	QWORD L;
-	DWORD F;
-	DWORD X;
-} MEMORY_REGION;
-
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
 CODEDECL const char OK[] = "OK\n";
@@ -58,24 +50,20 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	setup_interrupt();
 	setup_timer();
 	setup_paging();
-	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
-	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | 0xFFFF800000000000ULL);
-	QWORD usable = 0;
+
+	OUTPUTTEXT("HEAP\n");
 	OUTPUTTEXT("Base Address       Length             Type\n");
-	//          0000000000000000 | 0000000000000000 | 00000000
-	while (beg < end)
+	QWORD *block = (QWORD *) HEAPK;
+	while (~*block)
 	{
-		PRINTRAX(beg->A, 16);
+		PRINTRAX((QWORD) (block + 1), 16);
 		OUTPUTTEXT(" | ");
-		PRINTRAX(beg->L, 16);
+		PRINTRAX((*block >> 3) << 3, 16);
 		OUTPUTTEXT(" | ");
-		PRINTRAX(beg->F, 8);
+		PRINTRAX(*block & 7, 8);
 		LINEFEED();
-		if (beg->F == 1)
-		{
-			usable += beg->L;
-		}
-		beg++;
+		block += *block >> 3;
+		block++;
 	}
 
 	OUTPUTTEXT(OK);
