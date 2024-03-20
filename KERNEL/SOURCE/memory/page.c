@@ -20,10 +20,10 @@ typedef struct _MEMORY_REGION
 
 CODEDECL const char MSG0500[] = "SETUP PAGING\n";
 CODEDECL const char MSG0501[] = "FREE MEMORY ";
-CODEDECL const char MSG0502[] = "Base Address       Length             Height\n";
+CODEDECL const char MSG0502[] = "Base Address       Length             Depth\n";
 CODEDECL BYTE PTM[PAGE_COUNT >> 3];
 CODEDECL QWORD(*PAGING)[512];
-CODEDECL MEMORY_BLOCK *MEMORY_MAP;
+CODEDECL MEMORY_BLOCK *PHYSICAL_MEMORY_MAP;
 
 void interrupt_PF(INTERRUPT_STACK* stack)
 {
@@ -168,27 +168,29 @@ QWORD physical_mapping(QWORD linear)
 	}
 	return (L3[idx3] & ~0xFFF) + (linear & ((1 << 12) - 1));
 }
-void ForeachMemoryMap(MEMORY_BLOCK *block, int height)
+QWORD ForeachMemoryMap(MEMORY_BLOCK *block, int height)
 {
+	QWORD free = 0;
 	if (block)
 	{
 		DWORD split = 0x00207C20; // " | "
-		ForeachMemoryMap(block->L, height + 1);
+		free += ForeachMemoryMap(block->L, height + 1);
 		PRINTRAX(block->A, 16);
 		OUTPUTTEXT((char *) &split);
 		PRINTRAX(block->S, 16);
 		OUTPUTTEXT((char *) &split);
 		PRINTRAX(height, 2);
 		LINEFEED();
-		ForeachMemoryMap(block->R, height + 1);
+		free += block->S;
+		free += ForeachMemoryMap(block->R, height + 1);
 	}
+	return free;
 }
 void setup_paging()
 {
 	OUTPUTTEXT(MSG0500);
 	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
 	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | SYSTEM_LINEAR);
-	QWORD usable = 0;
 	QWORD total = 0;
 	while (beg < end)
 	{
@@ -200,8 +202,7 @@ void setup_paging()
 				memset(block, 0, sizeof(MEMORY_BLOCK));
 				block->A = beg->A;
 				block->S = beg->L;
-				usable += block->S;
-				InsertMemoryNode(&MEMORY_MAP, block);
+				InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
 			}
 			else if (beg->L >= (0x03000000ULL - beg->A))
 			{
@@ -209,18 +210,16 @@ void setup_paging()
 				memset(block, 0, sizeof(MEMORY_BLOCK));
 				block->A = 0x03000000;
 				block->S = beg->L - (0x03000000ULL - beg->A);
-				usable += block->S;
-				InsertMemoryNode(&MEMORY_MAP, block);
+				InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
 			}
 		}
 		total += beg->L;
 		beg++;
 	}
 	OUTPUTTEXT(MSG0502);
-	//          0000000000000000 | 0000000000000000 | 00
-	ForeachMemoryMap(MEMORY_MAP, 1);
+	QWORD free = ForeachMemoryMap(PHYSICAL_MEMORY_MAP, 1);
 	OUTPUTTEXT(MSG0501);
-	PRINTRAX(usable, 16);
+	PRINTRAX(free, 16);
 	OUTCHAR(' ');
 	OUTCHAR('/');
 	OUTCHAR(' ');
