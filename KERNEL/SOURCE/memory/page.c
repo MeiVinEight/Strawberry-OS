@@ -227,3 +227,86 @@ void setup_paging()
 	LINEFEED();
 	register_interrupt(0x0E, interrupt_PF);
 }
+DWORD AllocatePhysicalMemory(QWORD pageSize, QWORD *pageCount, QWORD *physicalAddress)
+{
+	// Page size: 0=4K 1=2M 2=1G
+	if (pageSize > 2)
+	{
+		return 1;
+	}
+
+	// Page size = 1 << shift
+	QWORD pageShift = 12 + (pageSize * 9);
+
+	// First, tmp.A = 0
+	MEMORY_BLOCK tmp = { 0, 0, 0, 0, 0, 0 };
+	while (1)
+	{
+		MEMORY_BLOCK *min = &tmp;
+		MEMORY_BLOCK *curr = PHYSICAL_MEMORY_MAP;
+		// Find smallest value which is greater than tmp
+		while (curr)
+		{
+			if (curr->A >= tmp.A)
+			{
+				min = curr;
+				curr = curr->L;
+			}
+			else
+			{
+				curr = curr->R;
+			}
+		}
+		// min->S == 0 means min = &tmp, no more memory block is usable
+		if (!min->S)
+		{
+			return 2;
+		}
+		tmp.A = min->A + min->S;
+
+		QWORD blockSize = min->S;
+		QWORD blockAddr = min->A;
+		// Align block address to page size
+		QWORD reminder = blockAddr & ((1ULL << pageShift) - 1);
+		reminder = (-reminder) & ((1ULL << pageShift) - 1);
+		// Cannot align this block to page size
+		// Continue to next block
+		if (blockSize < reminder)
+		{
+			continue;
+		}
+		blockSize -= reminder;
+		blockAddr += reminder;
+		// Cannot allocate one page from this block
+		if (blockSize < (1ULL << pageShift))
+		{
+			continue;
+		}
+		// Allocate as more page as possible
+		*physicalAddress = blockAddr;
+		QWORD allocateCount = blockSize >> pageShift;
+		if (allocateCount < *pageCount)
+		{
+			*pageCount = allocateCount;
+		}
+		allocateCount = *pageCount;
+		// Reduce this block
+		min->S = blockAddr - min->A;
+		if (!min->S)
+		{
+			RemoveMemoryNode(&PHYSICAL_MEMORY_MAP, min);
+		}
+		// This allocation split the block to two block
+		if (blockSize - (allocateCount << pageShift))
+		{
+			blockAddr += (allocateCount << pageShift);
+			blockSize -= (allocateCount << pageShift);
+			MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
+			memset(block, 0, sizeof(MEMORY_BLOCK));
+			block->A = blockAddr;
+			block->S = blockSize;
+			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
+		}
+		return 0;
+	}
+}
