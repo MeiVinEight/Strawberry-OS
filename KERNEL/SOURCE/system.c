@@ -7,7 +7,7 @@
 
 CODEDECL OS_SYSTEM_TABLE OST;
 
-void setup_system_table(OS_SYSTEM_TABLE * table)
+void setup_system_table(OS_SYSTEM_TABLE *table)
 {
 	memcpy(&OST, table, sizeof(OS_SYSTEM_TABLE));
 	memcpy(PTM, (void *) OST.PTME, PAGE_COUNT >> 3);

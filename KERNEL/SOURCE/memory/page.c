@@ -227,7 +227,7 @@ void setup_paging()
 	LINEFEED();
 	register_interrupt(0x0E, interrupt_PF);
 }
-DWORD AllocatePhysicalMemory(QWORD pageSize, QWORD *pageCount, QWORD *physicalAddress)
+DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *pageCount)
 {
 	// Page size: 0=4K 1=2M 2=1G
 	if (pageSize > 2)
