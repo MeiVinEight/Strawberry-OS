@@ -310,3 +310,18 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 		return 0;
 	}
 }
+DWORD FreePhysicalMemory(QWORD physicalAddress, QWORD pageSize, QWORD pageCount)
+{
+	if (pageSize > 2)
+	{
+		return 1;
+	}
+
+	QWORD page = 1ULL << (12 + 9 * pageSize);
+	MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
+	memset(block, 0, sizeof(MEMORY_BLOCK));
+	block->A = physicalAddress;
+	block->S = page * pageCount;
+	InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
+	return 0;
+}

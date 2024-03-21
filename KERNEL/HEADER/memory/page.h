@@ -14,5 +14,6 @@ DWORD linear_mapping(QWORD, QWORD, BYTE);
 DWORD identity_mapping(QWORD, BYTE);
 QWORD physical_mapping(QWORD);
 DWORD AllocatePhysicalMemory(QWORD *, QWORD, QWORD *);
+DWORD FreePhysicalMemory(QWORD, QWORD, QWORD);
 
 #endif

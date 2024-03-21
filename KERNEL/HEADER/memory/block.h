@@ -3,12 +3,11 @@
 
 #include <types.h>
 
-typedef struct _MEMORY_BLOCK MEMORY_BLOCK;
 typedef struct _MEMORY_BLOCK
 {
-	MEMORY_BLOCK *P;
-	MEMORY_BLOCK *L;
-	MEMORY_BLOCK *R;
+	struct _MEMORY_BLOCK *P;
+	struct _MEMORY_BLOCK *L;
+	struct _MEMORY_BLOCK *R;
 	QWORD H;
 	QWORD A;
 	QWORD S;
