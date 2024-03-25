@@ -23,6 +23,7 @@ MEMORY_BLOCK **NodeReference(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 	{
 		return root;
 	}
+	return 0;
 }
 QWORD TreeHeight(MEMORY_BLOCK *tree)
 {
@@ -96,7 +97,10 @@ void RemoveMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 		// Because the node's right children is null,
 		// only needs to move the left children to parent's pointer.
 		*NodeReference(root, prev) = prev->L;
-		prev->L->P = prev->P;
+		if (prev->L)
+		{
+			prev->L->P = prev->P;
+		}
 		// Make block point to the deleted node.
 		block = prev;
 	}
@@ -119,41 +123,12 @@ void RemoveMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 {
 	// Find smallest value which greater than the block
-	MEMORY_BLOCK tmp1 = {0, 0, 0, 0, ~(0ULL), 0};
-	MEMORY_BLOCK *next = &tmp1;
-	MEMORY_BLOCK *curr = *root;
-	while (curr)
-	{
-		if (curr->A >= block->A)
-		{
-			next = curr;
-			curr = curr->L;
-		}
-		else
-		{
-			curr = curr->R;
-		}
-	}
-
-	// Find bigest value which less than the block
-	MEMORY_BLOCK tmp2 = { 0, 0, 0, 0, 0, 0 };
-	MEMORY_BLOCK *prev = &tmp2;
-	curr = *root;
-	while (curr)
-	{
-		if (curr->A <= block->A)
-		{
-			prev = curr;
-			curr = curr->R;
-		}
-		else
-		{
-			curr = curr->L;
-		}
-	}
+	MEMORY_BLOCK *next = SearchMemoryNode(root, block, 1);
+	// Find biggest value which less than the block
+	MEMORY_BLOCK *prev = SearchMemoryNode(root, block, 0);
 
 	// Check merge
-	if (prev->A + prev->S >= block->A)
+	if (prev && prev->A + prev->S >= block->A)
 	{
 		QWORD A = prev->A;
 		QWORD Z = block->A + block->S;
@@ -162,7 +137,7 @@ void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 		block->S = Z - A;
 		RemoveMemoryNode(root, prev);
 	}
-	if (block->A + block->S >= next->A)
+	if (next && block->A + block->S >= next->A)
 	{
 		QWORD A = block->A;
 		QWORD Z = next->A + next->S;
@@ -193,4 +168,49 @@ void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 	block->P = parent;
 	*reference = block;
 	AdjustMemoryMap(root, block);
+}
+MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD option)
+{
+	switch (option)
+	{
+		case 0:
+		{
+			// Find biggest value which is less than the block
+			MEMORY_BLOCK *next = 0;
+			MEMORY_BLOCK *curr = *root;
+			while (curr)
+			{
+				if (curr->A <= block->A)
+				{
+					next = curr;
+					curr = curr->R;
+				}
+				else
+				{
+					curr = curr->L;
+				}
+			}
+			return next;
+		}
+		case 1:
+		{
+			// Find smallest value which is greater than the block
+			MEMORY_BLOCK *next = 0;
+			MEMORY_BLOCK *curr = *root;
+			while (curr)
+			{
+				if (curr->A >= block->A)
+				{
+					next = curr;
+					curr = curr->L;
+				}
+				else
+				{
+					curr = curr->R;
+				}
+			}
+			return next;
+		}
+		default: return 0;
+	}
 }

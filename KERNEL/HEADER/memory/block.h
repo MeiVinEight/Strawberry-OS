@@ -18,5 +18,6 @@ QWORD TreeHeight(MEMORY_BLOCK *);
 void AdjustMemoryMap(MEMORY_BLOCK **, MEMORY_BLOCK *);
 void RemoveMemoryNode(MEMORY_BLOCK **, MEMORY_BLOCK *);
 void InsertMemoryNode(MEMORY_BLOCK **, MEMORY_BLOCK *);
+MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **, MEMORY_BLOCK *, DWORD);
 
 #endif

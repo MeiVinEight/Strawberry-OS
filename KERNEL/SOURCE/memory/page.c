@@ -230,23 +230,9 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 	MEMORY_BLOCK tmp = { 0, 0, 0, 0, 0, 0 };
 	while (1)
 	{
-		MEMORY_BLOCK *min = &tmp;
-		MEMORY_BLOCK *curr = PHYSICAL_MEMORY_MAP;
-		// Find smallest value which is greater than tmp
-		while (curr)
-		{
-			if (curr->A >= tmp.A)
-			{
-				min = curr;
-				curr = curr->L;
-			}
-			else
-			{
-				curr = curr->R;
-			}
-		}
-		// min->S == 0 means min = &tmp, no more memory block is usable
-		if (!min->S)
+		MEMORY_BLOCK *min = SearchMemoryNode(&PHYSICAL_MEMORY_MAP, &tmp, 1);
+		// min == 0 means no more memory block is usable
+		if (!min)
 		{
 			*pageCount = 0;
 			return 2;
