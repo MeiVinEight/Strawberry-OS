@@ -35,13 +35,10 @@
 #define HBA_PxIS_TFES   (1 << 30)       /* TFES - Task File Error Status */
 
 
-#define PAGE_COUNT (15 << 8)
-
-#define SYSTEM_PHY 0x00000000
-#define KERNEL_PHY 0x01000000
-
 #define SYSTEM_LNR 0xFFFF800000000000ULL
 #define KERNEL_LNR 0xFFFFFFFFFF000000ULL
+
+#define SYSTEM_TABLE_MMAP 0x00003018ULL
 
 
 #define SECTION "TEXT"
@@ -246,8 +243,6 @@ typedef struct _OS_SYSTEM_TABLE
 	QWORD FONT;
 	QWORD MMAP;
 	QWORD BLAT;
-	QWORD PTME;
-	QWORD PAGE;
 	QWORD SCRN;
 	QWORD RSDP;
 } OS_SYSTEM_TABLE;
@@ -311,11 +306,70 @@ BIOSAPI const char MSG0003[] = "KERNEL ENTRY ";
 BIOSAPI const char DVC07E015AD[] = "VMware SATA AHCI controller";
 BIOSAPI const char DVC06D38086[] = "Intel(R) 400 Series Chipset Family SATA AHCI Controller";
 BIOSAPI const char DVCA2828086[] = "Intel Corporation 200 Series PCH SATA controller [AHCI mode]";
-BIOSAPI BYTE PTM[PAGE_COUNT >> 3] = {0};
-BIOSAPI QWORD(*PAGING)[512] = (QWORD(*)[512]) 0x00100000;
 BIOSAPI STBRBOOT *BOOT_TABLE = (STBRBOOT *) (0x00010000 | SYSTEM_LNR);
 BIOSAPI OS_SYSTEM_TABLE SYSTEM_TABLE;
 
+void allocate_physical(QWORD *physicalAddress, QWORD pageSize, QWORD *pageCount)
+{
+	// Foreach the memory map
+	QWORD *mmap = (QWORD *) SYSTEM_TABLE_MMAP;
+	QWORD *end = (QWORD *) mmap[0];
+	QWORD *beg = mmap + 1;
+	// Calculate page shift
+	QWORD shift = 12 + 9 * pageSize;
+
+	while (beg < end)
+	{
+		QWORD A0 = beg[0];
+		QWORD S0 = beg[1];
+		// Skip 0x00000000 + 1M
+		if (A0 < (1 << 20))
+		{
+			goto CONTINUE;
+		}
+		// Align A0 and S0 to the first boundary of page size
+		QWORD A1 = A0;
+		// Calculate align gap size
+		QWORD S1 = A0 & ((1ULL << shift) - 1);
+		S1 = (-S1) & ((1ULL << shift) - 1);
+		if (S0 < S1)
+		{
+			goto CONTINUE;
+		}
+		// Repoint the A0
+		A0 += S1;
+		S0 -= S1;
+		if (S0 < (1ULL << shift))
+		{
+			goto CONTINUE;
+		}
+		*physicalAddress = A0;
+		QWORD allocateCount = S0 >> shift;
+		if (allocateCount < *pageCount)
+		{
+			*pageCount = allocateCount;
+		}
+		allocateCount = *pageCount;
+		A0 += allocateCount << shift;
+		S0 -= allocateCount << shift;
+		beg[0] = A0;
+		beg[1] = S0;
+		if (S1)
+		{
+			end[0] = A1;
+			end[1] = S1;
+			end[2] = 0;
+			*((DWORD *) (end + 2)) = 1;
+			end += 3;
+			mmap[0] = (QWORD) end;
+		}
+		return;
+		CONTINUE:;
+		beg += 3;
+	}
+	// Allocate failed, trap cpu into halt loop
+	while (1) __halt();
+}
 QWORD physical_mapping(QWORD linear)
 {
 	WORD idx0 = (linear >> 39) & 0x1FF;
@@ -364,35 +418,55 @@ BIOSAPI BYTE setrsp[] =
 };
 void setup_paging(void(*stage)())
 {
-	// Clear 1M Memory
-	memset(PAGING, 0, 0x00100000);
-	QWORD *L1 = (QWORD *) PAGING[0];
-	L1[0x100] = (QWORD) PAGING[1] | 3;
+	QWORD pageCount = 1;
+	QWORD *L1 = 0;
+	allocate_physical((QWORD *) &L1, 0, &pageCount);
+	memset(L1, 0, 0x00001000);
+
+	QWORD *L2 = 0;
+	allocate_physical((QWORD *) &L2, 0, &pageCount);
+	memset(L2, 0, 0x1000);
+	L1[0x100] = (QWORD) L2 | 3;
 	L1[0x000] = L1[0x100];
-	QWORD *L2 = PAGING[1];
 	// 4 * 1G PAGE
 	L2[0x000] = (0ULL << 30) | 0x183;
 	L2[0x001] = (1ULL << 30) | 0x183;
 	L2[0x002] = (2ULL << 30) | 0x183;
 	L2[0x003] = (3ULL << 30) | 0x183;
 
-	L1[0x1FF] = (QWORD) PAGING[3] | 3;
-	L2 = PAGING[3];
-	L2[0x1FF] = (QWORD) PAGING[4] | 3;
-	QWORD *L32 = PAGING[4];
+	allocate_physical((QWORD *) &L2, 0, &pageCount);
+	memset(L2, 0, 0x1000);
+	L1[0x1FF] = (QWORD) L2 | 3;
+
+	QWORD *L3 = 0;
+	allocate_physical((QWORD *) &L3, 0, &pageCount);
+	memset(L3, 0, 0x1000);
+	L2[0x1FF] = (QWORD) L3 | 3;
 
 	DWORD idx2 = 0x1F8;
-	QWORD KERNEL = KERNEL_PHY | 0x183;
+	QWORD physicalAddress = 0;
 	while (idx2 < 0x200)
 	{
-		L32[idx2++] = KERNEL;
-		KERNEL += 0x00200000;
+		pageCount = 0x200 - idx2;
+		allocate_physical(&physicalAddress, 1, &pageCount);
+		for (QWORD i = 0; i < pageCount; i++)
+		{
+			L3[idx2++] = physicalAddress | 0x183;
+			physicalAddress += 0x00200000;
+		}
 	}
-	__writecr3((QWORD) PAGING);
-	PAGING = (QWORD(*)[512])((QWORD) PAGING | SYSTEM_LNR);
-	PTM[0] = 0x1F;
-	memset((void *) (0x00200000 + SYSTEM_LNR), 0, 0x00E00000);
-	memset((void *) (0x00000000 + KERNEL_LNR), 0, 0x01000000);
+	idx2 = 0;
+	while (idx2 < 8)
+	{
+		pageCount = 8 - idx2;
+		allocate_physical(&physicalAddress, 1, &pageCount);
+		for (QWORD i = 0; i < pageCount; i++)
+		{
+			L3[idx2++] = physicalAddress | 0x183;
+			physicalAddress += 0x00200000;
+		}
+	}
+	__writecr3((QWORD) L1);
 	((void(*)()) setrsp)();
 	((void(*)()) ((QWORD) stage | SYSTEM_LNR))();
 }
@@ -452,11 +526,9 @@ void PRINTRAX(QWORD x, BYTE s)
 }
 void main()
 {
-	PAGING[0][0] = 0;
+	((QWORD *) (__readcr3() | SYSTEM_LNR))[0] = 0;
 	SYSTEM_TABLE.BLAT = (0x00010000 | SYSTEM_LNR);
-	SYSTEM_TABLE.MMAP = (0x00003018 | SYSTEM_LNR);
-	SYSTEM_TABLE.PTME = (QWORD) PTM;
-	SYSTEM_TABLE.PAGE = (QWORD) PAGING;
+	SYSTEM_TABLE.MMAP = (SYSTEM_TABLE_MMAP | SYSTEM_LNR);
 	setup_screen();
 	OUTPUTTEXT(MSG0000);
 
@@ -1048,7 +1120,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 	// Previous run list LBA
 	QWORD RUNLIST = BPB.hidden;
 	// Physical address of dest, kernel area
-	BYTE* dst = (BYTE *) KERNEL_PHY;
+	QWORD dst = KERNEL_LNR;
 	while (*attribute)
 	{
 		// Compressed byte
@@ -1068,7 +1140,7 @@ DWORD LoadingSATA(HBA_PORT* port, QWORD page)
 		QWORD sector = RUNLIST;
 		while (cluster--)
 		{
-			if (AHCIIO(port, sector, BPB.cluster, dst, ATA_CMD_READ_DMA_EX))
+			if (AHCIIO(port, sector, BPB.cluster, (void *) physical_mapping(dst), ATA_CMD_READ_DMA_EX))
 			{
 				OUTPUTTEXT(ERR02);
 				return 1;

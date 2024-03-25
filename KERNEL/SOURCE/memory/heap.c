@@ -2,23 +2,15 @@
 #include <declspec.h>
 #include <memory/page.h>
 
-#define KERNEL_HEAP_PHYSICAL 0x02000000
-#define KERNEL_HEAP_LINEAR   0xFFFFFFFFF0000000
+#define KERNEL_HEAP_LINEAR   0xFFFFFFFFC0000000;
 #define HEAP_MASK (~(0ULL))
 
 CODEDECL QWORD HEAPK;
 
 void setup_heap()
 {
-	// Static allocate 0x02000000 + 16M to 0xFFFFFFFFF0000000 as kernel heap
+	// Boot loader needs to allocate 16M for kernel heap at 0xFFFFFFFFC0000000
 	HEAPK = KERNEL_HEAP_LINEAR;
-	QWORD linear = HEAPK;
-	for (QWORD addr = KERNEL_HEAP_PHYSICAL; addr < 0x03000000;)
-	{
-		linear_mapping(addr, linear, 1); // 2M PAGE
-		addr += 0x00200000;
-		linear += 0x00200000;
-	}
 	// First 8 byte of each block is payload size
 	*((QWORD *) HEAPK) = 0x00FFFFF0;
 	// Last block's payload size is ~0

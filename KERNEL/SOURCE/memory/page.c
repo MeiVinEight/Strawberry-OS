@@ -21,11 +21,10 @@ typedef struct _MEMORY_REGION
 CODEDECL const char MSG0500[] = "SETUP PAGING\n";
 CODEDECL const char MSG0501[] = "FREE MEMORY ";
 CODEDECL const char MSG0502[] = "Base Address       Length             Depth\n";
-CODEDECL BYTE PTM[PAGE_COUNT >> 3];
-CODEDECL QWORD(*PAGING)[512];
+CODEDECL const char MSG0503[] = "CAN NOT ALLOCATE MEMORY FOR PAGE TABLE ";
 CODEDECL MEMORY_BLOCK *PHYSICAL_MEMORY_MAP;
 
-void interrupt_PF(INTERRUPT_STACK* stack)
+void INT0E(INTERRUPT_STACK* stack)
 {
 	SCREEN.CLR = 0x0C;
 	char buf[5] = { '#', 'P', 'F', 0, 0 };
@@ -61,15 +60,19 @@ void interrupt_PF(INTERRUPT_STACK* stack)
 }
 QWORD empty_page()
 {
-	for (DWORD i = 0; i < PAGE_COUNT; i++)
+	QWORD page = 0;
+	QWORD pcnt = 1;
+	DWORD retn = AllocatePhysicalMemory(&page, 0, &pcnt);
+	if (pcnt)
 	{
-		if (!(PTM[i >> 3] & (1 << (i & 7))))
-		{
-			PTM[i >> 3] |= (1 << (i & 7));
-			return (QWORD) PAGING[i];
-		}
+		return page;
 	}
-	return 0;
+	SCREEN.CLR = 0x0C;
+	OUTPUTTEXT(MSG0503);
+	PRINTRAX(retn, 2);
+	SCREEN.CLR = 0x0F;
+	LINEFEED();
+	while (1) __halt();
 }
 QWORD *page_entry(QWORD *PT, WORD idx)
 {
@@ -78,11 +81,6 @@ QWORD *page_entry(QWORD *PT, WORD idx)
 		if (!(PT[idx] & 1))
 		{
 			QWORD l = empty_page();
-			if (!l)
-			{
-				IDT[0x0E].P = 0;
-				return 0;
-			}
 			memset((QWORD *) l, 0, 4096);
 			PT[idx] = physical_mapping(l) | 3;
 		}
@@ -194,24 +192,13 @@ void setup_paging()
 	QWORD total = 0;
 	while (beg < end)
 	{
-		if (beg->F == 1)
+		if (beg->F == 1 && beg->L)
 		{
-			if (beg->A >= 0x03000000ULL)
-			{
-				MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
-				memset(block, 0, sizeof(MEMORY_BLOCK));
-				block->A = beg->A;
-				block->S = beg->L;
-				InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
-			}
-			else if (beg->L >= (0x03000000ULL - beg->A))
-			{
-				MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
-				memset(block, 0, sizeof(MEMORY_BLOCK));
-				block->A = 0x03000000;
-				block->S = beg->L - (0x03000000ULL - beg->A);
-				InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
-			}
+			MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
+			memset(block, 0, sizeof(MEMORY_BLOCK));
+			block->A = beg->A;
+			block->S = beg->L;
+			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
 		}
 		total += beg->L;
 		beg++;
@@ -225,13 +212,14 @@ void setup_paging()
 	OUTCHAR(' ');
 	PRINTRAX(total, 16);
 	LINEFEED();
-	register_interrupt(0x0E, interrupt_PF);
+	register_interrupt(0x0E, INT0E);
 }
 DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *pageCount)
 {
 	// Page size: 0=4K 1=2M 2=1G
 	if (pageSize > 2)
 	{
+		*pageCount = 0;
 		return 1;
 	}
 
@@ -260,6 +248,7 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 		// min->S == 0 means min = &tmp, no more memory block is usable
 		if (!min->S)
 		{
+			*pageCount = 0;
 			return 2;
 		}
 		tmp.A = min->A + min->S;
