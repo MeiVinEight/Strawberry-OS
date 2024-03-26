@@ -647,6 +647,7 @@
     <ClInclude Include="..\..\KERNEL\HEADER\memory\heap.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\memory\page.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\memory\segment.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\msr.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\system.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\timer\8254.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\timer\timer.h" />

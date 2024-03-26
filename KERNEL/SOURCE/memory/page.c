@@ -7,6 +7,7 @@
 #include <system.h>
 #include <memory/heap.h>
 #include <memory/block.h>
+#include <msr.h>
 
 #define SYSTEM_LINEAR 0xFFFF800000000000ULL
 
@@ -22,6 +23,7 @@ CODEDECL const char MSG0500[] = "SETUP PAGING\n";
 CODEDECL const char MSG0501[] = "FREE MEMORY ";
 CODEDECL const char MSG0502[] = "Base Address       Length             Depth\n";
 CODEDECL const char MSG0503[] = "CAN NOT ALLOCATE MEMORY FOR PAGE TABLE ";
+CODEDECL const char MSG0504[] = "ENABLE IA32_EFER.NXE\n";
 CODEDECL MEMORY_BLOCK *PHYSICAL_MEMORY_MAP;
 
 void INT0E(INTERRUPT_STACK* stack)
@@ -37,6 +39,12 @@ void INT0E(INTERRUPT_STACK* stack)
 	buf[3] = ' ';
 	OUTPUTTEXT(buf);
 	PRINTRAX(__readcr2(), 16);
+	LINEFEED();
+	buf[0] = 'E';
+	buf[1] = 'R';
+	buf[2] = 'R';
+	OUTPUTTEXT(buf);
+	PRINTRAX(stack->ERROR, 16);
 	LINEFEED();
 	buf[0] = 'R';
 	buf[1] = 'I';
@@ -81,16 +89,22 @@ QWORD *page_entry(QWORD *PT, WORD idx)
 		if (!(PT[idx] & 1))
 		{
 			QWORD l = empty_page();
-			memset((QWORD *) l, 0, 4096);
-			PT[idx] = physical_mapping(l) | 3;
+			memset((QWORD *) (l | SYSTEM_LINEAR), 0, 4096);
+			PT[idx] = l | 3;
 		}
 		if (PT[idx] & 0x80) return 0;
 		return (QWORD *) ((PT[idx] & ~0xFFF) | SYSTEM_LINEAR);
 	}
 	return 0;
 }
-DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size)
+DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 {
+	// BIT
+	// 63: No Execute
+	// 1: Has write
+	// 0: Present
+	options ^= 4;
+	options = ((options & 4) << 61) | (options & 3);
 	// Resolve linear address
 	WORD idx0 = (linear >> 39) & 0x1FF;
 	WORD idx1 = (linear >> 30) & 0x1FF;
@@ -102,29 +116,28 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size)
 	if (L1 && size == 2 && !(L1[idx1] & 1))
 	{
 		// 1G PAGING
-		L1[idx1] = ((addr >> 30) << 30) | 0x83;
+		L1[idx1] = ((addr >> 30) << 30) | 0x80;
+		L1[idx1] |= options;
 		return 0;
 	}
 	QWORD *L2 = page_entry(L1, idx1);
 	if (L2 && size == 1 && !(L2[idx2] & 1))
 	{
 		// 2M PAGING
-		L2[idx2] = ((addr >> 21) << 21) | 0x83;
+		L2[idx2] = ((addr >> 21) << 21) | 0x80;
+		L2[idx2] |= options;
 		return 0;
 	}
 	QWORD *L3 = page_entry(L2, idx2);
 	if (L3 && size == 0 && !(L3[idx3] & 1))
 	{
 		// 4K PAGING
-		L3[idx3] = ((addr >> 12) << 12) | 0x03;
+		L3[idx3] = ((addr >> 12) << 12);
+		L3[idx3] |= options;
 		return 0;
 	}
 	// Mapping failed
 	return 1;
-}
-DWORD identity_mapping(QWORD physical, BYTE size)
-{
-	return linear_mapping(physical, physical, size);
 }
 QWORD physical_mapping(QWORD linear)
 {
@@ -187,6 +200,9 @@ QWORD ForeachMemoryMap(MEMORY_BLOCK *block, int height)
 void setup_paging()
 {
 	OUTPUTTEXT(MSG0500);
+	OUTPUTTEXT(MSG0504);
+	__writemsr(IA32_EFER_MSR, __readmsr(IA32_EFER_MSR) | (1 << 11));
+
 	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
 	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | SYSTEM_LINEAR);
 	QWORD total = 0;
@@ -216,6 +232,11 @@ void setup_paging()
 }
 DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *pageCount)
 {
+	if (!*pageCount)
+	{
+		return 0;
+	}
+
 	// Page size: 0=4K 1=2M 2=1G
 	if (pageSize > 2)
 	{
