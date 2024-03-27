@@ -214,7 +214,7 @@ void setup_paging()
 			memset(block, 0, sizeof(MEMORY_BLOCK));
 			block->A = beg->A;
 			block->S = beg->L;
-			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
+			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block, 1);
 		}
 		total += beg->L;
 		beg++;
@@ -301,7 +301,7 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 			memset(block, 0, sizeof(MEMORY_BLOCK));
 			block->A = blockAddr;
 			block->S = blockSize;
-			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
+			InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block, 1);
 		}
 		return 0;
 	}
@@ -312,12 +312,16 @@ DWORD FreePhysicalMemory(QWORD physicalAddress, QWORD pageSize, QWORD pageCount)
 	{
 		return 1;
 	}
+	if (!pageCount)
+	{
+		return 0;
+	}
 
 	QWORD page = 1ULL << (12 + 9 * pageSize);
 	MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
 	memset(block, 0, sizeof(MEMORY_BLOCK));
 	block->A = physicalAddress;
 	block->S = page * pageCount;
-	InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block);
+	InsertMemoryNode(&PHYSICAL_MEMORY_MAP, block, 1);
 	return 0;
 }

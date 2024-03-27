@@ -120,31 +120,34 @@ void RemoveMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 	// Free the memory of the node.
 	HeapFree(block);
 }
-void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
+void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD merge)
 {
-	// Find smallest value which greater than the block
-	MEMORY_BLOCK *next = SearchMemoryNode(root, block, 1);
-	// Find biggest value which less than the block
-	MEMORY_BLOCK *prev = SearchMemoryNode(root, block, 0);
+	if (merge)
+	{
+		// Find smallest value which greater than the block
+		MEMORY_BLOCK *next = SearchMemoryNode(root, block, 1);
+		// Find biggest value which less than the block
+		MEMORY_BLOCK *prev = SearchMemoryNode(root, block, 0);
 
-	// Check merge
-	if (prev && prev->A + prev->S >= block->A)
-	{
-		QWORD A = prev->A;
-		QWORD Z = block->A + block->S;
-		if (prev->A + prev->S > Z) Z = prev->A + prev->S;
-		block->A = A;
-		block->S = Z - A;
-		RemoveMemoryNode(root, prev);
-	}
-	if (next && block->A + block->S >= next->A)
-	{
-		QWORD A = block->A;
-		QWORD Z = next->A + next->S;
-		if (block->A + block->S > Z) Z = block->A + block->S;
-		block->A = A;
-		block->S = Z - A;
-		RemoveMemoryNode(root, next);
+		// Check merge
+		if (prev && prev->A + prev->S >= block->A)
+		{
+			QWORD A = prev->A;
+			QWORD Z = block->A + block->S;
+			if (prev->A + prev->S > Z) Z = prev->A + prev->S;
+			block->A = A;
+			block->S = Z - A;
+			RemoveMemoryNode(root, prev);
+		}
+		if (next && block->A + block->S >= next->A)
+		{
+			QWORD A = block->A;
+			QWORD Z = next->A + next->S;
+			if (block->A + block->S > Z) Z = block->A + block->S;
+			block->A = A;
+			block->S = Z - A;
+			RemoveMemoryNode(root, next);
+		}
 	}
 
 	// Insert block into memory map
