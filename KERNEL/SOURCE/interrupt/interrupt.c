@@ -57,7 +57,10 @@ CODEDECL const BYTE __isr[] =
 void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
-	interrupt_eoi(id);
+	if (interrupt_eoi)
+	{
+		interrupt_eoi(id);
+	}
 	// INT
 	if (INTERRUPT_ROUTINE[id])
 	{
@@ -135,8 +138,11 @@ void setup_interrupt()
 	LINEFEED();
 	// Init IDT: TYPE=0x0E:Interrupt Gate, S=0x08:Kernel code segment
 	IDT = (INTERRUPT64 *) HeapAlloc(HEAPK, sizeof(INTERRUPT64) * INTERRUPT_COUNT);
+	memset(IDT, 0, sizeof(INTERRUPT64) * INTERRUPT_COUNT);
 	ISR = (BYTE(*)[9]) HeapAlloc(HEAPK, sizeof(ISR[0]) * INTERRUPT_COUNT);
+	memset(ISR, 0, sizeof(ISR[0]) * INTERRUPT_COUNT);
 	INTERRUPT_ROUTINE = (void (**)(INTERRUPT_STACK *)) HeapAlloc(HEAPK, sizeof(void *) * INTERRUPT_COUNT);
+	memset(INTERRUPT_ROUTINE, 0, sizeof(void *) * INTERRUPT_COUNT);
 	for (DWORD i = 0; i < 256; i++)
 	{
 		IDT[i].S = 0x08;
