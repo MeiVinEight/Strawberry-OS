@@ -147,13 +147,13 @@ QWORD physical_mapping(QWORD linear)
 	WORD idx3 = (linear >> 12) & 0x1FF;
 
 	QWORD *L0 = (QWORD *) (__readcr3() | SYSTEM_LINEAR);
-	if (!(L0[idx0] | 1))
+	if (!(L0[idx0] & 1))
 	{
 		return ~(0ULL);
 	}
 
 	QWORD *L1 = (QWORD *) ((L0[idx0] & ~0xFFF) | SYSTEM_LINEAR);
-	if (!(L1[idx1] | 1))
+	if (!(L1[idx1] & 1))
 	{
 		return ~(0ULL);
 	}
@@ -163,7 +163,7 @@ QWORD physical_mapping(QWORD linear)
 	}
 
 	QWORD *L2 = (QWORD *) ((L1[idx1] & ~0xFFF) | SYSTEM_LINEAR);
-	if (!(L2[idx2] | 1))
+	if (!(L2[idx2] & 1))
 	{
 		return ~(0ULL);
 	}
