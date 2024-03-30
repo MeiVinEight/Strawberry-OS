@@ -248,17 +248,17 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 	QWORD pageShift = 12 + (pageSize * 9);
 
 	// First, tmp.A = 0
-	MEMORY_BLOCK tmp = { 0, 0, 0, 0, 0, 0 };
+	QWORD searchAddress = 0;
 	while (1)
 	{
-		MEMORY_BLOCK *min = SearchMemoryNode(&PHYSICAL_MEMORY_MAP, &tmp, 1);
+		MEMORY_BLOCK *min = SearchMemoryNode(&PHYSICAL_MEMORY_MAP, searchAddress, 1);
 		// min == 0 means no more memory block is usable
 		if (!min)
 		{
 			*pageCount = 0;
 			return 2;
 		}
-		tmp.A = min->A + min->S;
+		searchAddress = min->A + min->S;
 
 		QWORD blockSize = min->S;
 		QWORD blockAddr = min->A;

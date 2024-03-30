@@ -33,32 +33,23 @@ QWORD TreeHeight(MEMORY_BLOCK *tree)
 	}
 	return 0;
 }
-void AdjustMemoryMap(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
+void AdjustHeight(MEMORY_BLOCK *block)
 {
-	while (block)
+	QWORD LH = TreeHeight(block->L);
+	QWORD RH = TreeHeight(block->R);
+	block->H = (LH > RH ? LH : RH) + 1;
+}
+void AdjustAVL(MEMORY_BLOCK **reference, DWORD type)
+{
+	MEMORY_BLOCK *block = *reference;
+	MEMORY_BLOCK *P = block->P;
+	MEMORY_BLOCK *L = block->L;
+	MEMORY_BLOCK *R = block->R;
+	switch (type)
 	{
-		MEMORY_BLOCK **reference = NodeReference(root, block);
-		MEMORY_BLOCK *P = block->P;
-		MEMORY_BLOCK *L = block->L;
-		MEMORY_BLOCK *R = block->R;
-		if (TreeHeight(block->L) > (TreeHeight(block->R) + 1))
+		case 0:
 		{
-			// Right rotate
-			// Assume left child is not null
-			if (L->R)
-			{
-				L->R->P = block;
-			}
-			block->L = L->R;
-			block->P = L;
-			L->R = block;
-			L->P = P;
-			*reference = L;
-		}
-		else if (TreeHeight(block->R) > (TreeHeight(block->L) + 1))
-		{
-			// Left rotate
-			// Assume right child is not null
+			// LR
 			if (R->L)
 			{
 				R->L->P = block;
@@ -68,12 +59,60 @@ void AdjustMemoryMap(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 			R->L = block;
 			R->P = P;
 			*reference = R;
+			break;
 		}
-		QWORD LH = TreeHeight(block->L);
-		QWORD RH = TreeHeight(block->R);
-		block->H = LH > RH ? LH : RH;
-		block->H++;
-		block = block->P;
+		case 1:
+		{
+			// RR
+			if (L->R)
+			{
+				L->R->P = block;
+			}
+			block->L = L->R;
+			block->P = L;
+			L->R = block;
+			L->P = P;
+			*reference = L;
+			break;
+		}
+	}
+	AdjustHeight(block);
+	AdjustHeight(*reference);
+}
+void AdjustMemoryMap(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
+{
+	while (block)
+	{
+		MEMORY_BLOCK **reference = NodeReference(root, block);
+		MEMORY_BLOCK *P = block->P;
+		MEMORY_BLOCK *L = block->L;
+		MEMORY_BLOCK *R = block->R;
+		
+		QWORD LH = TreeHeight(L);
+		QWORD RH = TreeHeight(R);
+
+		if (LH > (RH + 1))
+		{
+			// Right rotate
+			// Assume left child is not null
+			if (TreeHeight(L->R) > TreeHeight(L->L))
+			{
+				AdjustAVL(&block->L, 0);
+			}
+			AdjustAVL(NodeReference(root, block), 1);
+		}
+		else if (RH > (LH + 1))
+		{
+			// Left rotate
+			// Assume right child is not null
+			if (TreeHeight(R->L) > TreeHeight(R->R))
+			{
+				AdjustAVL(&block->R, 1);
+			}
+			AdjustAVL(NodeReference(root, block), 0);
+		}
+		AdjustHeight(*reference);
+		block = (*reference)->P;
 	}
 }
 void RemoveMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
@@ -125,9 +164,9 @@ void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD merge)
 	if (merge)
 	{
 		// Find smallest value which greater than the block
-		MEMORY_BLOCK *next = SearchMemoryNode(root, block, 1);
+		MEMORY_BLOCK *next = SearchMemoryNode(root, block->A, 1);
 		// Find biggest value which less than the block
-		MEMORY_BLOCK *prev = SearchMemoryNode(root, block, 0);
+		MEMORY_BLOCK *prev = SearchMemoryNode(root, block->A, 0);
 
 		// Check merge
 		if (prev && prev->A + prev->S >= block->A)
@@ -172,7 +211,7 @@ void InsertMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD merge)
 	*reference = block;
 	AdjustMemoryMap(root, block);
 }
-MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD option)
+MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **root, QWORD address, DWORD option)
 {
 	switch (option)
 	{
@@ -183,7 +222,7 @@ MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD o
 			MEMORY_BLOCK *curr = *root;
 			while (curr)
 			{
-				if (curr->A <= block->A)
+				if (curr->A <= address)
 				{
 					next = curr;
 					curr = curr->R;
@@ -202,7 +241,7 @@ MEMORY_BLOCK *SearchMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block, DWORD o
 			MEMORY_BLOCK *curr = *root;
 			while (curr)
 			{
-				if (curr->A >= block->A)
+				if (curr->A >= address)
 				{
 					next = curr;
 					curr = curr->L;
