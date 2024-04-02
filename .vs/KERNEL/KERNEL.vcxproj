@@ -265,7 +265,8 @@
       <SuppressStartupBanner />
       <TreatWarningAsError />
       <DiagnosticsFormat />
-      <Optimization>MinSpace</Optimization>
+      <Optimization>
+      </Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed />
       <OmitFramePointers />
@@ -515,7 +516,8 @@
       <SuppressStartupBanner />
       <TreatWarningAsError />
       <DiagnosticsFormat />
-      <Optimization>MinSpace</Optimization>
+      <Optimization>
+      </Optimization>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <FavorSizeOrSpeed />
       <EnableFiberSafeOptimizations />
