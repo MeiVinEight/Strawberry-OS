@@ -146,6 +146,7 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 }
 QWORD physical_mapping(QWORD linear)
 {
+	QWORD addressMask = 0x07FFFFFFFFFFF000;
 	WORD idx0 = (linear >> 39) & 0x1FF;
 	WORD idx1 = (linear >> 30) & 0x1FF;
 	WORD idx2 = (linear >> 21) & 0x1FF;
@@ -164,7 +165,7 @@ QWORD physical_mapping(QWORD linear)
 	}
 	if (L1[idx1] & 0x80)
 	{
-		return (L1[idx1] & ~0xFFF) + (linear & ((1 << 30) - 1));
+		return (L1[idx1] & addressMask) + (linear & ((1 << 30) - 1));
 	}
 
 	QWORD *L2 = (QWORD *) ((L1[idx1] & ~0xFFF) | SYSTEM_LINEAR);
@@ -174,7 +175,7 @@ QWORD physical_mapping(QWORD linear)
 	}
 	if (L2[idx2] & 0x80)
 	{
-		return (L2[idx2] & ~0xFFF) + (linear & ((1 << 21) - 1));
+		return (L2[idx2] & addressMask) + (linear & ((1 << 21) - 1));
 	}
 
 	QWORD *L3 = (QWORD *) ((L2[idx2] & ~0xFFF) | SYSTEM_LINEAR);
@@ -182,7 +183,7 @@ QWORD physical_mapping(QWORD linear)
 	{
 		return ~(0ULL);
 	}
-	return (L3[idx3] & ~0xFFF) + (linear & ((1 << 12) - 1));
+	return (L3[idx3] & addressMask) + (linear & ((1 << 12) - 1));
 }
 QWORD ForeachMemoryMap(MEMORY_BLOCK *block, int height)
 {
