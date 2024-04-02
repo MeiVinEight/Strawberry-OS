@@ -22,10 +22,19 @@ typedef struct _MEMORY_REGION
 CODEDECL const char MSG0500[] = "SETUP PAGING\n";
 CODEDECL const char MSG0501[] = "FREE MEMORY ";
 CODEDECL const char MSG0502[] = "Base Address       Length             Depth\n";
-CODEDECL const char MSG0503[] = "CAN NOT ALLOCATE MEMORY FOR PAGE TABLE ";
+CODEDECL const char MSG0503[] = "MEMORY NOT ENOUGH ";
 CODEDECL const char MSG0504[] = "ENABLE IA32_EFER.NXE\n";
 CODEDECL MEMORY_BLOCK *PHYSICAL_MEMORY_MAP;
 
+void MemoryNotEnough(DWORD code)
+{
+	SCREEN.CLR = 0x0C;
+	OUTPUTTEXT(MSG0503);
+	PRINTRAX(code, 2);
+	SCREEN.CLR = 0x0F;
+	LINEFEED();
+	while (1) __halt();
+}
 void INT0E(INTERRUPT_STACK* stack)
 {
 	SCREEN.CLR = 0x0C;
@@ -75,12 +84,8 @@ QWORD empty_page()
 	{
 		return page;
 	}
-	SCREEN.CLR = 0x0C;
-	OUTPUTTEXT(MSG0503);
-	PRINTRAX(retn, 2);
-	SCREEN.CLR = 0x0F;
-	LINEFEED();
-	while (1) __halt();
+	MemoryNotEnough(retn);
+	return 0;
 }
 QWORD *page_entry(QWORD *PT, WORD idx)
 {
@@ -113,7 +118,7 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 
 	QWORD *L0 = (QWORD *) (__readcr3() | SYSTEM_LINEAR);
 	QWORD *L1 = page_entry(L0, idx0);
-	if (L1 && size == 2 && !(L1[idx1] & 1))
+	if (L1 && size == PAGE4_1G && !(L1[idx1] & 1))
 	{
 		// 1G PAGING
 		L1[idx1] = ((addr >> 30) << 30) | 0x80;
@@ -121,7 +126,7 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 		return 0;
 	}
 	QWORD *L2 = page_entry(L1, idx1);
-	if (L2 && size == 1 && !(L2[idx2] & 1))
+	if (L2 && size == PAGE4_2M && !(L2[idx2] & 1))
 	{
 		// 2M PAGING
 		L2[idx2] = ((addr >> 21) << 21) | 0x80;
@@ -129,7 +134,7 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 		return 0;
 	}
 	QWORD *L3 = page_entry(L2, idx2);
-	if (L3 && size == 0 && !(L3[idx3] & 1))
+	if (L3 && size == PAGE4_4K && !(L3[idx3] & 1))
 	{
 		// 4K PAGING
 		L3[idx3] = ((addr >> 12) << 12);
