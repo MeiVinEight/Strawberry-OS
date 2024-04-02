@@ -15,5 +15,6 @@ typedef struct _OS_SYSTEM_TABLE
 extern OS_SYSTEM_TABLE OST;
 
 void setup_system_table(OS_SYSTEM_TABLE *);
+void SetupCPU();
 
 #endif//__KERNEL_SYSTEM_H__
