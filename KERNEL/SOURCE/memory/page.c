@@ -8,6 +8,7 @@
 #include <memory/heap.h>
 #include <memory/block.h>
 #include <msr.h>
+#include <memory/virtual.h>
 
 #define SYSTEM_LINEAR 0xFFFF800000000000ULL
 
@@ -37,6 +38,23 @@ void MemoryNotEnough(DWORD code)
 }
 void INT0E(INTERRUPT_STACK* stack)
 {
+	QWORD CR2 = __readcr2();
+	if (!(stack->ERROR & 1))
+	{
+		MEMORY_BLOCK *cr = SearchMemoryNode(&VTL_CMT, CR2, 0);
+		if (cr)
+		{
+			QWORD physicalAddress = 0;
+			QWORD pageCount = 1;
+			QWORD retn = AllocatePhysicalMemory(&physicalAddress, 0, &pageCount);
+			if (!pageCount)
+			{
+				MemoryNotEnough(retn);
+			}
+			linear_mapping(physicalAddress, CR2, PAGE4_4K, (cr->V << 1) | 1);
+			return;
+		}
+	}
 	SCREEN.CLR = 0x0C;
 	char buf[5] = { '#', 'P', 'F', 0, 0 };
 	OUTPUTTEXT(buf);
@@ -47,7 +65,7 @@ void INT0E(INTERRUPT_STACK* stack)
 	buf[2] = '2';
 	buf[3] = ' ';
 	OUTPUTTEXT(buf);
-	PRINTRAX(__readcr2(), 16);
+	PRINTRAX(CR2, 16);
 	LINEFEED();
 	buf[0] = 'E';
 	buf[1] = 'R';
@@ -63,17 +81,6 @@ void INT0E(INTERRUPT_STACK* stack)
 	PRINTRAX(stack->RIP, 16);
 	LINEFEED();
 	while (1) __halt();
-	/*
-	if (stack->ERROR == 0)
-	{
-		if (identity_mapping(__readcr2(), 0))
-		{
-			char buf[4] = {'#', 'P', 'F', 0};
-			OUTPUTTEXT(buf);
-			while (1) __halt();
-		}
-	}
-	*/
 }
 QWORD empty_page()
 {
