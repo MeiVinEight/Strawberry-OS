@@ -185,21 +185,26 @@ QWORD physical_mapping(QWORD linear)
 	}
 	return (L3[idx3] & addressMask) + (linear & ((1 << 12) - 1));
 }
-QWORD ForeachMemoryMap(MEMORY_BLOCK *block, int height)
+QWORD ForeachMemoryMap(MEMORY_BLOCK *block, DWORD height, DWORD flag)
 {
 	QWORD free = 0;
 	if (block)
 	{
 		DWORD split = 0x00207C20; // " | "
-		free += ForeachMemoryMap(block->L, height + 1);
+		free += ForeachMemoryMap(block->L, height + 1, flag);
 		PRINTRAX(block->A, 16);
 		OUTPUTTEXT((char *) &split);
 		PRINTRAX(block->S, 16);
+		if (flag & 1)
+		{
+			OUTPUTTEXT((char *) &split);
+			PRINTRAX(block->V, 1);
+		}
 		OUTPUTTEXT((char *) &split);
 		PRINTRAX(height, 2);
 		LINEFEED();
 		free += block->S;
-		free += ForeachMemoryMap(block->R, height + 1);
+		free += ForeachMemoryMap(block->R, height + 1, flag);
 	}
 	return free;
 }
@@ -226,7 +231,7 @@ void setup_paging()
 		beg++;
 	}
 	OUTPUTTEXT(MSG0502);
-	QWORD free = ForeachMemoryMap(PHYSICAL_MEMORY_MAP, 1);
+	QWORD free = ForeachMemoryMap(PHYSICAL_MEMORY_MAP, 1, 0);
 	OUTPUTTEXT(MSG0501);
 	PRINTRAX(free, 16);
 	OUTCHAR(' ');
