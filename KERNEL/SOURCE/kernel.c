@@ -47,6 +47,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	OUTPUTTEXT(brand);
 	LINEFEED();
 
+	SetupCPU();
 	setup_interrupt();
 	setup_timer();
 	setup_paging();
