@@ -87,7 +87,7 @@ void AdjustMemoryMap(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 		MEMORY_BLOCK *P = block->P;
 		MEMORY_BLOCK *L = block->L;
 		MEMORY_BLOCK *R = block->R;
-		
+
 		QWORD LH = TreeHeight(L);
 		QWORD RH = TreeHeight(R);
 
@@ -132,6 +132,7 @@ void RemoveMemoryNode(MEMORY_BLOCK **root, MEMORY_BLOCK *block)
 		block->H = prev->H;
 		block->A = prev->A;
 		block->S = prev->S;
+		block->V = prev->V;
 		// Delete node prev.
 		// Because the node's right children is null,
 		// only needs to move the left children to parent's pointer.

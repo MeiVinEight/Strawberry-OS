@@ -11,6 +11,7 @@ typedef struct _MEMORY_BLOCK
 	QWORD H;
 	QWORD A;
 	QWORD S;
+	QWORD V;
 } MEMORY_BLOCK;
 
 MEMORY_BLOCK **NodeReference(MEMORY_BLOCK **, MEMORY_BLOCK *);
