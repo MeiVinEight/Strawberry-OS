@@ -7,6 +7,7 @@
 #include <system.h>
 #include <memory/segment.h>
 #include <memory/heap.h>
+#include <memory/virtual.h>
 
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
@@ -51,6 +52,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	setup_interrupt();
 	setup_timer();
 	setup_paging();
+	SetupVirtualMemory();
 
 	OUTPUTTEXT("HEAP\n");
 	OUTPUTTEXT("Base Address       Length             Type\n");
