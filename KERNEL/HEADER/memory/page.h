@@ -9,6 +9,7 @@
 
 void setup_paging();
 DWORD linear_mapping(QWORD, QWORD, BYTE, QWORD);
+DWORD linear_unmapping(QWORD);
 DWORD identity_mapping(QWORD, BYTE);
 QWORD physical_mapping(QWORD);
 DWORD AllocatePhysicalMemory(QWORD *, QWORD, QWORD *);

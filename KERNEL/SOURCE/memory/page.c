@@ -144,6 +144,50 @@ DWORD linear_mapping(QWORD addr, QWORD linear, BYTE size, QWORD options)
 	// Mapping failed
 	return 1;
 }
+DWORD linear_unmapping(QWORD linear)
+{
+	// Resolve linear address
+	WORD idx0 = (linear >> 39) & 0x1FF;
+	WORD idx1 = (linear >> 30) & 0x1FF;
+	WORD idx2 = (linear >> 21) & 0x1FF;
+	WORD idx3 = (linear >> 12) & 0x1FF;
+
+	QWORD *L0 = (QWORD *) (__readcr3() | SYSTEM_LINEAR);
+	if (!(L0[idx0] & 1))
+	{
+		return 0;
+	}
+
+	QWORD *L1 = (QWORD *) ((L0[idx0] & ~0xFFFULL) | SYSTEM_LINEAR);
+	if (!(L1[idx1] & 1))
+	{
+		return 0;
+	}
+	if (L1[idx1] & 0x80)
+	{
+		L1[idx1] ^= 1;
+		return PAGE4_1G;
+	}
+
+	QWORD *L2 = (QWORD *) ((L1[idx1] & ~0xFFFULL) | SYSTEM_LINEAR);
+	if (!(L2[idx2] & 1))
+	{
+		return 0;
+	}
+	if (L2[idx2] & 0x80)
+	{
+		L2[idx2] ^= 1;
+		return PAGE4_2M;
+	}
+
+	QWORD *L3 = (QWORD *) ((L2[idx2] & !0xFFFULL) | SYSTEM_LINEAR);
+	if (!(L3[idx3] & 1))
+	{
+		return 0;
+	}
+	L3[idx3] ^= 1;
+	return PAGE4_4K;
+}
 QWORD physical_mapping(QWORD linear)
 {
 	QWORD addressMask = 0x07FFFFFFFFFFF000;
