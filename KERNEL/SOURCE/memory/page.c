@@ -10,8 +10,6 @@
 #include <msr.h>
 #include <memory/virtual.h>
 
-#define SYSTEM_LINEAR 0xFFFF800000000000ULL
-
 typedef struct _MEMORY_REGION
 {
 	QWORD A;

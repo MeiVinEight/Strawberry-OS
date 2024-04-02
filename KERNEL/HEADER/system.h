@@ -3,6 +3,8 @@
 
 #include <types.h>
 
+#define SYSTEM_LINEAR 0xFFFF800000000000ULL
+
 typedef struct _OS_SYSTEM_TABLE
 {
 	QWORD FONT;
