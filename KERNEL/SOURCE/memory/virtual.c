@@ -23,11 +23,6 @@ void SetupVirtualMemory()
 }
 void UncommitVirtualMemory(QWORD address, QWORD size)
 {
-	OUTPUTTEXT("UNCOMMIT ");
-	PRINTRAX(address, 16);
-	OUTCHAR('+');
-	PRINTRAX(size, 16);
-	LINEFEED();
 	QWORD pagedSize = (((size - 1) >> 12) + 1) << 12;
 
 	QWORD searchAddress = 0;
@@ -90,11 +85,6 @@ void UncommitVirtualMemory(QWORD address, QWORD size)
 		}
 		
 		// Free common region
-		OUTPUTTEXT("COMMON ");
-		PRINTRAX(A0, 16);
-		OUTCHAR('+');
-		PRINTRAX(S0, 16);
-		LINEFEED();
 		while (S0)
 		{
 			// This 4K page has physical memory mapping
