@@ -322,6 +322,11 @@ void allocate_physical(QWORD *physicalAddress, QWORD pageSize, QWORD *pageCount)
 	{
 		QWORD A0 = beg[0];
 		QWORD S0 = beg[1];
+		QWORD F0 = beg[2];
+		if ((DWORD) F0 != 1)
+		{
+			goto CONTINUE;
+		}
 		// Skip 0x00000000 + 1M
 		if (A0 < (1 << 20))
 		{
