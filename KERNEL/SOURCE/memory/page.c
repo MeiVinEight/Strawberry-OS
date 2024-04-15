@@ -12,10 +12,10 @@
 
 typedef struct _MEMORY_REGION
 {
-	QWORD A;
-	QWORD L;
-	DWORD F;
-	DWORD X;
+	QWORD A; // Base Address
+	QWORD L; // Memory Block Size
+	DWORD F; // Flag
+	DWORD X; // Extended Flag
 } MEMORY_REGION;
 
 CODEDECL const char MSG0500[] = "SETUP PAGING\n";
@@ -160,13 +160,13 @@ DWORD linear_unmapping(QWORD linear)
 	QWORD *L0 = (QWORD *) (__readcr3() | SYSTEM_LINEAR);
 	if (!(L0[idx0] & 1))
 	{
-		return 0;
+		return 0xFF;
 	}
 
 	QWORD *L1 = (QWORD *) ((L0[idx0] & ~0xFFFULL) | SYSTEM_LINEAR);
 	if (!(L1[idx1] & 1))
 	{
-		return 0;
+		return 0xFF;
 	}
 	if (L1[idx1] & 0x80)
 	{
@@ -177,7 +177,7 @@ DWORD linear_unmapping(QWORD linear)
 	QWORD *L2 = (QWORD *) ((L1[idx1] & ~0xFFFULL) | SYSTEM_LINEAR);
 	if (!(L2[idx2] & 1))
 	{
-		return 0;
+		return 0xFF;
 	}
 	if (L2[idx2] & 0x80)
 	{
@@ -188,7 +188,7 @@ DWORD linear_unmapping(QWORD linear)
 	QWORD *L3 = (QWORD *) ((L2[idx2] & !0xFFFULL) | SYSTEM_LINEAR);
 	if (!(L3[idx3] & 1))
 	{
-		return 0;
+		return 0xFF;
 	}
 	L3[idx3] ^= 1;
 	return PAGE4_4K;
