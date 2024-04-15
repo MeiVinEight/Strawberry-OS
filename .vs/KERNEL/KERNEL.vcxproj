@@ -624,6 +624,8 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c" />
@@ -640,6 +642,8 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\timer\timer.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\KERNEL\HEADER\acpi\acpi.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />

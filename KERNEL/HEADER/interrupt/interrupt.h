@@ -4,6 +4,7 @@
 #include <types.h>
 
 #define IRQ_INT 0x20
+#define INTERRUPT_COUNT 256
 
 typedef struct _INTERRUPT64
 {
@@ -52,11 +53,12 @@ typedef struct _INTERRUPT_STACK
 	QWORD EFLAGS;
 } INTERRUPT_STACK;
 
-extern void (*interrupt_eoi)();
+extern void (*INTERRUPT_EOI)();
 extern DWORD USEAPIC;
 extern INTERRUPT64 *IDT;
 
 void setup_interrupt();
 void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*));
+void SetupIDT();
 
 #endif

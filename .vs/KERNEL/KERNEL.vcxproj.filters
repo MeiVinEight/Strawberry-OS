@@ -31,6 +31,12 @@
     <Filter Include="SOURCE\memory">
       <UniqueIdentifier>{baa24581-dc8e-45d3-8939-46e12a5f4773}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\acpi">
+      <UniqueIdentifier>{51f6fe51-00b2-462d-ae5d-51db15606093}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\acpi">
+      <UniqueIdentifier>{e5f729f5-981d-45df-b1bd-4215cf09f6d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c">
@@ -74,6 +80,12 @@
     </ClCompile>
     <ClCompile Include="..\..\KERNEL\SOURCE\memory\virtual.c">
       <Filter>SOURCE\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c">
+      <Filter>SOURCE\acpi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c">
+      <Filter>SOURCE\acpi</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +136,12 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\msr.h">
       <Filter>HEADER</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\acpi\acpi.h">
+      <Filter>HEADER\acpi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h">
+      <Filter>HEADER\acpi</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

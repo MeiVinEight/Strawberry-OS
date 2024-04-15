@@ -30,6 +30,8 @@ typedef struct _GDTR64
 #pragma pack(pop)
 
 extern SEGMENT64 GDT[];
+extern WORD GLOBAL_DESCRIPTOR_COUNT;
+
 void setup_segment();
 
 #endif

@@ -7,12 +7,10 @@
 #include <interrupt/apic.h>
 #include <memory/heap.h>
 
-#define INTERRUPT_COUNT 256
-
 CODEDECL const char MSG0100[] = "CONSTRUCT IDT";
 CODEDECL const char MSG0101[] = "SET IDTR ";
 
-CODEDECL void (*interrupt_eoi)(BYTE);
+CODEDECL void (*INTERRUPT_EOI)(BYTE);
 CODEDECL DWORD USEAPIC = 0;
 CODEDECL INTERRUPT64 *IDT;
 CODEDECL BYTE(*ISR)[9];
@@ -57,14 +55,14 @@ CODEDECL const BYTE __isr[] =
 void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
-	if (interrupt_eoi)
-	{
-		interrupt_eoi(id);
-	}
 	// INT
 	if (INTERRUPT_ROUTINE[id])
 	{
 		INTERRUPT_ROUTINE[id](stack);
+	}
+	if (INTERRUPT_EOI)
+	{
+		INTERRUPT_EOI(id);
 	}
 }
 void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*))
@@ -153,7 +151,7 @@ void setup_interrupt()
 	// Setup interrupt controller
 	if (check_apic())
 	{
-		setup_apic();
+		SetupAPIC();
 		USEAPIC = 1;
 	}
 	else
@@ -169,22 +167,26 @@ void setup_interrupt()
 	register_interrupt(0x08, __FAULT);
 	register_interrupt(0x0D, __FAULT);
 
+	SetupIDT();
+
+	// Output idtr
+	IDTR64 idtr;
+	idtr.Limit = 0;
+	*((QWORD *) &idtr.Base) = 0;
+	__sidt(&idtr);
+	OUTPUTTEXT(MSG0101);
+	PRINTRAX(idtr.Limit, 4);
+	OUTCHAR(':');
+	PRINTRAX(*((QWORD *) &idtr.Base), 16);
+	LINEFEED();
+}
+void SetupIDT()
+{
 	// lidt
 	IDTR64 idtr;
 	idtr.Limit = (sizeof(INTERRUPT64) * INTERRUPT_COUNT) - 1;
-	*((QWORD*)&idtr.Base) = ((QWORD)IDT);
+	*((QWORD *) &idtr.Base) = ((QWORD) IDT);
 	__lidt(&idtr);
-
-	// Output idtr
-	idtr.Limit = 0;
-	*((QWORD*)&idtr.Base) = 0;
-	__sidt(&idtr);
-	char separate[2] = { ':', 0 };
-	OUTPUTTEXT(MSG0101);
-	PRINTRAX(idtr.Limit, 4);
-	OUTPUTTEXT(separate);
-	PRINTRAX(*((QWORD*)&idtr.Base), 16);
-	LINEFEED();
 
 	// Enable interrupt
 	__sti();

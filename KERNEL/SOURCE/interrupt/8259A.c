@@ -11,7 +11,7 @@ void setup_8259A()
 {
 	OUTPUTTEXT(MSG0300);
 	// 8259A EOI
-	interrupt_eoi = eoi_8259A;
+	INTERRUPT_EOI = eoi_8259A;
 	// Master PIC
 	__outbyte(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); // Start init sequence (in cascade mode)
 	__outbyte(PIC1_DATA, PIC1_OFFSET); // ICW2: Master PIC vector offset: 0x20

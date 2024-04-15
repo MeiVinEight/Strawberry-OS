@@ -8,6 +8,7 @@ CODEDECL SEGMENT64 GDT[] =
 	{.RW = 1, .E = 1, .S = 1, .DPL = 0, .P = 1, .L = 1}, // 0x00209A0000000000 CODE
 	{.RW = 1, .E = 0, .S = 1, .DPL = 0, .P = 1, .L = 0}, // 0x0000920000000000 DATA
 };
+CODEDECL WORD GLOBAL_DESCRIPTOR_COUNT = 0;
 CODEDECL BYTE LXS0[] =
 {
 	0x6A, 0x08,                                                 // PUSH 08
@@ -27,6 +28,7 @@ CODEDECL BYTE LXS1[] =
 };
 void setup_segment()
 {
+	GLOBAL_DESCRIPTOR_COUNT = sizeof(GDT) >> 3;
 	GDTR64 gdtr;
 	gdtr.L = sizeof(GDT) - 1;
 	gdtr.A = (QWORD) GDT;

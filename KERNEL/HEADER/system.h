@@ -14,9 +14,11 @@ typedef struct _OS_SYSTEM_TABLE
 	QWORD RSDP;
 } OS_SYSTEM_TABLE;
 
-extern OS_SYSTEM_TABLE OST;
+extern OS_SYSTEM_TABLE SYSTEM_TABLE;
+extern BYTE CORE_LOCK;
 
 void setup_system_table(OS_SYSTEM_TABLE *);
 void SetupCPU();
+void OutputCPU();
 
 #endif//__KERNEL_SYSTEM_H__
