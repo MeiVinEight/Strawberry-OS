@@ -252,7 +252,7 @@ void* __cdecl memset(void*, int, unsigned long long);
 void* __cdecl memcpy(void*, const void*, unsigned long long);
 void PAINTCURSOR(DWORD);
 void PAINTCHAR(BYTE, BYTE, DWORD);
-void SCROLLPAGE();
+void SCROLLSCREEN();
 void MOVECURSOR();
 void CARRIAGERETURN();
 void LINEFEED();
@@ -300,9 +300,6 @@ BIOSAPI const char ERR04[] = "NO 80 DATA RUN LIST\n";
 BIOSAPI const char ERR05[] = "NO KERNEL.DLL\n";
 BIOSAPI const char ERR06[] = "NO EMPTY PAGE\n";
 BIOSAPI const char MSG0000[] = "Strawberry-BOOT\n";
-BIOSAPI const char MSG0001[] = "PCI:FIND AHCI CONTROLLER\n";
-BIOSAPI const char MSG0002[] = "FIND BIOS RSDP\n";
-BIOSAPI const char MSG0003[] = "KERNEL ENTRY ";
 BIOSAPI const char DVC07E015AD[] = "VMware SATA AHCI controller";
 BIOSAPI const char DVC06D38086[] = "Intel(R) 400 Series Chipset Family SATA AHCI Controller";
 BIOSAPI const char DVCA2828086[] = "Intel Corporation 200 Series PCH SATA controller [AHCI mode]";
@@ -502,7 +499,6 @@ void setup_acpi()
 {
 	if (!BOOT_TABLE->RSDP)
 	{
-		OUTPUTTEXT(MSG0002);
 		char buf[8] = "RSD PTR ";
 		QWORD sig = *((QWORD *) buf);
 		QWORD *start = (QWORD *) (0x000E0000 | SYSTEM_LNR);
@@ -542,6 +538,8 @@ void main()
 	PRINTRAX(SCREEN.A0, 16);
 	LINEFEED();
 
+	setup_acpi();
+
 	if (!find_pci())
 	{
 		// DOS HEADER
@@ -552,7 +550,6 @@ void main()
 		*((QWORD *) (NTHeader + 0x30)) = base;
 		// ImageBase + [NT_HEADER + 0x28] is the address of entry point
 		QWORD entry = (QWORD) (base + *((DWORD *) (NTHeader + 0x28)));
-		OUTPUTTEXT(MSG0003);
 		PRINTRAX(entry, 16);
 		LINEFEED();
 		BYTE call[24] =
@@ -697,7 +694,6 @@ void LINEFEED()
 }
 DWORD find_pci()
 {
-	OUTPUTTEXT(MSG0001);
 	// Config Address
 	DWORD cmd = 0x80000000;
 	while (cmd < 0x81000000)
@@ -962,7 +958,7 @@ DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer, DWORD cmd)
 	if (slot == -1)
 		return 2;
 
-	HBA_CMD_HEADER *cmdh = (HBA_CMD_HEADER *) ((port->clb | ((QWORD) port->clbu << 32)) | 0xFFFF800000000000ULL);
+	HBA_CMD_HEADER *cmdh = (HBA_CMD_HEADER *) ((port->clb | ((QWORD) port->clbu << 32)) | SYSTEM_LNR);
 	cmdh += slot;
 	// Command FIS size
 	cmdh->cfl = 5; // sizeof(FIS_REG_H2D) / sizeof(DWORD)
@@ -973,7 +969,7 @@ DWORD AHCIIO(HBA_PORT* port, QWORD sector, WORD count, void* buffer, DWORD cmd)
 	// PRDT entries count
 	cmdh->prdtl = ((count - 1) >> 4) + 1; // UPPER BOUND (count / 4)
 
-	HBA_CMD_TBL *tbl = (HBA_CMD_TBL *) ((cmdh->ctba | ((QWORD) cmdh->ctbau << 32)) | 0xFFFF800000000000ULL);
+	HBA_CMD_TBL *tbl = (HBA_CMD_TBL *) ((cmdh->ctba | ((QWORD) cmdh->ctbau << 32)) | SYSTEM_LNR);
 	memset(tbl, 0, sizeof(HBA_CMD_TBL) + (cmdh->prdtl * sizeof(HBA_PRDT_ENTRY)));
 	// 8KiB (16 sectors) per PRDT
 	QWORD buf = (QWORD)buffer;
