@@ -287,11 +287,8 @@ void StartupAP(DWORD apicid)
 	CORE_LOCK = 1;
 	// INIT
 	WRICR(APIC_ICR_LEVEL_ASSERT | APIC_ICR_DELIVERY_INIT | (((QWORD) apicid) << 56));
-	// Delay 1s
-	{
-		QWORD delay = TIMER_INT_FREQUENCY / 20;
-		while (delay--) __halt();
-	}
+	// Delay 50ms
+	__halt();
 	// SIPI
 	WRICR(APIC_ICR_LEVEL_ASSERT | APIC_ICR_DELIVERY_STARTUP | ((apcode >> 12) & 0xFF) | (((QWORD) apicid) << 56));
 	while (CORE_LOCK);
