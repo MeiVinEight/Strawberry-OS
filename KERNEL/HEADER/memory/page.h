@@ -14,5 +14,6 @@ DWORD identity_mapping(QWORD, BYTE);
 QWORD physical_mapping(QWORD);
 DWORD AllocatePhysicalMemory(QWORD *, QWORD, QWORD *);
 DWORD FreePhysicalMemory(QWORD, QWORD, QWORD);
+void MemoryNotEnough(DWORD);
 
 #endif

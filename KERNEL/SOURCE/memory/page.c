@@ -316,6 +316,7 @@ DWORD AllocatePhysicalMemory(QWORD *physicalAddress, QWORD pageSize, QWORD *page
 		if (!min)
 		{
 			*pageCount = 0;
+			MemoryNotEnough(2);
 			return 2;
 		}
 		searchAddress = min->A + min->S;
