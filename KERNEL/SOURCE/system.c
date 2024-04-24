@@ -7,14 +7,6 @@
 #include <interrupt/apic.h>
 
 CODEDECL OS_SYSTEM_TABLE SYSTEM_TABLE;
-CODEDECL const char MSG0700[] = "SETUP STREAMING SIMD EXTENSION\n";
-CODEDECL const char MSG0701[] = "SSE 4.2\n";
-CODEDECL const char MSG0702[] = "SSE 4.1\n";
-CODEDECL const char MSG0703[] = "SSSE 3\n";
-CODEDECL const char MSG0704[] = "SSE 3\n";
-CODEDECL const char MSG0705[] = "SSE 2\n";
-CODEDECL const char MSG0706[] = "SSE\n";
-CODEDECL const char MSG0707[] = "NO SSE\n";
 CODEDECL BYTE CORE_LOCK = 0;
 
 void setup_system_table(OS_SYSTEM_TABLE *table)
@@ -24,50 +16,30 @@ void setup_system_table(OS_SYSTEM_TABLE *table)
 }
 void SetupCPU()
 {
-	OUTPUTTEXT(MSG0700);
-	DWORD cpuid[4] = {0};
-
 	// SSE
+	DWORD cpuid[4] = { 0 };
 	__cpuid(cpuid, 1);
-	if (cpuid[2] & (1 << 20))
+	QWORD sse = 0;
+	sse |= cpuid[2] & (1 << 20); // SSE 4.2
+	sse |= cpuid[2] & (1 << 19); // SSE 4.1
+	sse |= cpuid[2] & (1 << 9);  // SSSE 3
+	sse |= cpuid[2] & 1;         // SSE 3
+	sse |= cpuid[3] & (1 << 26); // SSE 2
+	sse |= cpuid[3] & (1 << 26); // SSE
+	if (sse)
 	{
-		OUTPUTTEXT(MSG0701);
+		QWORD CR0 = __readcr0();
+		// CR0.EM = 0
+		CR0 &= ~4;
+		// CR0.MP = 1
+		CR0 |= 2;
+		__writecr0(CR0);
+		QWORD CR4 = __readcr4();
+		// CR4.OSFXSR = 1
+		// CR4.OSXMMEXCPT = 1
+		CR4 |= 0x600;
+		__writecr4(CR4);
 	}
-	else if (cpuid[2] & (1 << 19))
-	{
-		OUTPUTTEXT(MSG0702);
-	}
-	else if (cpuid[2] & (1 << 9))
-	{
-		OUTPUTTEXT(MSG0703);
-	}
-	else if (cpuid[2] & 1)
-	{
-		OUTPUTTEXT(MSG0704);
-	}
-	else if (cpuid[3] & (1 << 26))
-	{
-		OUTPUTTEXT(MSG0705);
-	}
-	else if (cpuid[3] & (1 << 25))
-	{
-		OUTPUTTEXT(MSG0706);
-	}
-	else
-	{
-		OUTPUTTEXT(MSG0707);
-	}
-	QWORD CR0 = __readcr0();
-	// CR0.EM = 0
-	CR0 &= ~4;
-	// CR0.MP = 1
-	CR0 |= 2;
-	__writecr0(CR0);
-	QWORD CR4 = __readcr4();
-	// CR4.OSFXSR = 1
-	// CR4.OSXMMEXCPT = 1
-	CR4 |= 0x600;
-	__writecr4(CR4);
 }
 void OutputCPU()
 {

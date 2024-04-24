@@ -217,12 +217,22 @@ void setup_apic_timer(DWORD rate)
 	APIC_REGISTERS[APIC_LVT0][0] = APIC_LVT_CLR;
 	// Get APIC timer frequency
 	DWORD freq = (-(APIC_REGISTERS[APIC_TCCR][0])) + 1;
+	freq *= rate;
+	QWORD shift = 1;
+	while (freq >= 99)
+	{
+		freq++;
+		freq /= 10;
+		shift *= 10;
+	}
+	freq *= shift;
 	OUTPUTTEXT(MSG0402);
-	OUTPUTWORD(freq * rate);
-	OUTPUTTEXT(text);
+	OUTPUTWORD(freq / 1000000);
+	QWORD txt = 0x7A484D20;
+	OUTPUTTEXT((char *) &txt);
 	LINEFEED();
 	// Use it as APIC timer counter initializer
-	APIC_REGISTERS[APIC_TICR][0] = freq;
+	APIC_REGISTERS[APIC_TICR][0] = freq / rate;
 	// Setting divide value register again not needed by the manuals
 	APIC_REGISTERS[APIC_TDCR][0] = APIC_TIMER_DCR_1;
 	// Finally re-enable timer in periodic mode
