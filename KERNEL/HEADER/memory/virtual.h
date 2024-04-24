@@ -14,6 +14,6 @@ extern MEMORY_BLOCK *VTL_RSV;
 extern MEMORY_BLOCK *VTL_CMT;
 
 void SetupVirtualMemory();
-void *NtAllocateVirtualMemory(QWORD, QWORD, DWORD, DWORD);
+__declspec(dllexport) void *NtAllocateVirtualMemory(QWORD, QWORD, DWORD, DWORD);
 
 #endif
