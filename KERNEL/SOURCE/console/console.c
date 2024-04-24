@@ -33,20 +33,7 @@ CODEDECL const DWORD COLOR_PALETTE[] =
 	0xFFFFFF
 };
 CODEDECL BYTE(*FONT)[16];
-// CODEDECL TEXT_MODE_MEMORY GRAPHICS_MODE_TEXT;
 
-void FLUSHVIDEO()
-{
-	// memcpy((void *) SCREEN.A0, (void *) SCREEN.A1, SCREEN.H * SCREEN.V * 4);
-}
-void FLUSHLINE(DWORD start, DWORD count)
-{
-	if (SCREEN.DM)
-	{
-		// DWORD offset = SCREEN.H * 4 * 16 * start;
-		// memcpy((void *) (SCREEN.A0 + offset), (void *) (SCREEN.A1 + offset), SCREEN.H * 4 * 16 * count);
-	}
-}
 void PAINTCURSOR(DWORD cursor)
 {
 	DWORD i = cursor / SCREEN.CLM;
@@ -96,7 +83,6 @@ void SCROLLSCREEN()
 		memcpy((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4));
 		memset((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 16 * 4);
 		TEXT_MODE.CURSOR -= SCREEN.CLM;
-		FLUSHVIDEO();
 	}
 }
 void MOVECURSOR()
@@ -139,7 +125,6 @@ void OUTPUTTEXT(const char *s)
 				SCREEN.CSR -= SCREEN.CSR % (SCREEN.CLM);
 				SCREEN.CSR += SCREEN.CLM;
 				MOVECURSOR();
-				FLUSHLINE((SCREEN.CSR / SCREEN.CLM) - 1, 2);
 				break;
 			}
 			default:
@@ -196,7 +181,7 @@ void OUTPUTWORD(QWORD x)
 void setup_screen()
 {
 	FONT = (BYTE(*)[16]) HeapAlloc(HEAPK, 4096);
-	memcpy(FONT, (void *) OST.FONT, 4096);
+	memcpy(FONT, (void *) SYSTEM_TABLE.FONT, 4096);
 	SCREEN.CSR = 0;
 	SCREEN.CLR = 0x0F;
 	TEXT_MODE.TEXT = (BYTE *) SCREEN.A0;
