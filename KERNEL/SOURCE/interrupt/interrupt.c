@@ -56,13 +56,13 @@ void __isr_common(INTERRUPT_STACK *stack)
 {
 	BYTE id = stack->INT;
 	// INT
-	if (INTERRUPT_ROUTINE[id])
-	{
-		INTERRUPT_ROUTINE[id](stack);
-	}
 	if (INTERRUPT_EOI)
 	{
 		INTERRUPT_EOI(id);
+	}
+	if (INTERRUPT_ROUTINE[id])
+	{
+		INTERRUPT_ROUTINE[id](stack);
 	}
 }
 void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*))
