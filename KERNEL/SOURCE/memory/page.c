@@ -9,6 +9,7 @@
 #include <memory/block.h>
 #include <msr.h>
 #include <memory/virtual.h>
+#include <interrupt/apic.h>
 
 typedef struct _MEMORY_REGION
 {
@@ -37,22 +38,55 @@ void MemoryNotEnough(DWORD code)
 void INT0E(INTERRUPT_STACK* stack)
 {
 	QWORD CR2 = __readcr2();
+	QWORD apicid = CurrentAPIC();
 	if (!(stack->ERROR & 1))
 	{
-		MEMORY_BLOCK *cr = SearchMemoryNode(&VTL_CMT, CR2, 0);
-		if (cr)
+		if (CR2 >= 0xFFFF800000000000ULL)
 		{
-			QWORD physicalAddress = 0;
-			QWORD pageCount = 1;
-			QWORD retn = AllocatePhysicalMemory(&physicalAddress, 0, &pageCount);
-			if (!pageCount)
+			if (CR2 < 0xFFFF900000000000ULL)
 			{
-				MemoryNotEnough(retn);
+				// 0xFFFF800000000000+0x0000100000000000 Statically Mapping
+				// In this area, LinearAddress = PhysicalAddress | 0xFFFF800000000000ULL
+				// Use 1G page
+				linear_mapping(((CR2 << 17) >> 17), CR2, PAGE4_1G, 7);
+				return;
 			}
-			linear_mapping(physicalAddress, CR2, PAGE4_4K, (cr->V << 1) | 1);
-			return;
+			else if (CR2 < 0xFFFFE00000000000ULL)
+			{
+				// 0xFFFF900000000000+0x0000100000000000 Dynamic Allocate Space
+				MEMORY_BLOCK *cr = SearchMemoryNode(&VTL_CMT, CR2, 0);
+				if (cr)
+				{
+					QWORD physicalAddress = 0;
+					QWORD pageCount = 1;
+					QWORD retn = AllocatePhysicalMemory(&physicalAddress, 0, &pageCount);
+					if (!pageCount)
+					{
+						MemoryNotEnough(retn);
+					}
+					linear_mapping(physicalAddress, CR2, PAGE4_4K, (cr->V << 1) | 1);
+					return;
+				}
+			}
+			else if (CR2 < 0xFFFFF00000000000ULL)
+			{
+				QWORD idx3 = (CR2 >> 12) & 0x1FF;
+				if (idx3)
+				{
+					QWORD physicalAddress = 0;
+					QWORD pageCount = 1;
+					AllocatePhysicalMemory(&physicalAddress, PAGE4_4K, &pageCount);
+					linear_mapping(physicalAddress, CR2, PAGE4_4K, 7);
+					return;
+				}
+				// Stack Overflow
+			}
 		}
 	}
+	QWORD prefix = 0x2320555043;
+	OUTPUTTEXT((char *) &prefix);
+	PRINTRAX(apicid, 2);
+	OUTCHAR(' ');
 	SCREEN.CLR = 0x0C;
 	char buf[5] = { '#', 'P', 'F', 0, 0 };
 	OUTPUTTEXT(buf);
@@ -263,8 +297,8 @@ void setup_paging()
 	OUTPUTTEXT(MSG0504);
 	__writemsr(IA32_EFER_MSR, __readmsr(IA32_EFER_MSR) | (1 << 11));
 
-	MEMORY_REGION *beg = (MEMORY_REGION *) (OST.MMAP + 8);
-	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) OST.MMAP) | SYSTEM_LINEAR);
+	MEMORY_REGION *beg = (MEMORY_REGION *) (SYSTEM_TABLE.MMAP + 8);
+	MEMORY_REGION *end = (MEMORY_REGION *) (*((QWORD *) SYSTEM_TABLE.MMAP) | SYSTEM_LINEAR);
 	QWORD total = 0;
 	while (beg < end)
 	{
