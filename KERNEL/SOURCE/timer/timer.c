@@ -39,7 +39,7 @@ void setup_timer()
 		QWORD end = __rdtsc();
 
 		// Store calibrated CPU KHz
-		QWORD TSC_FREQUENCY_KHZ = (end - start) / 1000;
+		TSC_FREQUENCY_KHZ = (end - start) / 1000;
 		QWORD shift = 1;
 		while (TSC_FREQUENCY_KHZ >= 99)
 		{
@@ -58,35 +58,12 @@ void setup_timer()
 void delay(QWORD ms)
 {
 	// Step.1 Use timer interrupt to yield
+	QWORD stop = __rdtsc() + TSC_FREQUENCY_KHZ * ms;
 	QWORD unit = 1000 / TIMER_INT_FREQUENCY;
-	while (ms > unit)
+	while (((stop - __rdtsc()) / TSC_FREQUENCY_KHZ) >= unit)
 	{
 		__halt();
-		ms -= unit;
 	}
 	// Step.2 Use a hardware timer to wait micro time
-	if (TSC_FREQUENCY_KHZ)
-	{
-		// Use TSC
-		QWORD stop = __rdtsc() + TSC_FREQUENCY_KHZ * ms;
 		while (__rdtsc() < stop) __nop();
 	}
-	else
-	{
-		WORD wait = (PIT_FREQUENCY * ms) / 1000;
-		// Use PIT2
-		BYTE orig = __inbyte(PIT2_GATE);
-		__outbyte(PIT2_GATE, (orig & ~PPCB_SPKR) | PPCB_T2GATE);
-		// BIN | MODE0 | LSB/MSB | PIT2
-		__outbyte(PIT_CMD, PM_SEL_TIMER2 | PM_ACCESS_WORD | PM_MODE0 | PM_CNT_BINARY);
-		// LSB
-		__outbyte(PIT2_DATA, wait & 0xFF);
-		// MSB
-		__outbyte(PIT2_DATA, wait >> 8);
-
-		while (!(__inbyte(PIT2_GATE) & PPCB_T2OUT)) __nop();
-
-		// Restore PIT2_GATE
-		__outbyte(PIT2_GATE, orig);
-	}
-}
