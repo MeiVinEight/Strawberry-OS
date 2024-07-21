@@ -44,6 +44,23 @@ void *__cdecl memset(void *, int, unsigned long long)
 	0x5F,             // POP    RDI
 	0xC3,             // RETN
 };
+CODEDECL char memsetq[] =
+/*
+void *__cdecl memsetq(void *, unsigned long long, unsigned long long)
+*/
+{
+	0x57,             // PUSH   RDI
+	0x41, 0x50,       // PUSH   R8
+	0x48, 0x8B, 0xF9, // MOV    RDI, RCX
+	0x48, 0x8B, 0xC2, // MOV    RAX, RDX
+	0x49, 0x8B, 0xC8, // MOV    RCX, R8
+	0x4C, 0x8B, 0xC7, // MOV    R8,  RDI
+	0xF3, 0x48, 0xAB, // REP STOSQ
+	0x49, 0x8B, 0xC0, // MOV    RAX, R8
+	0x41, 0x58,       // POP    R8
+	0x5F,             // POP    RDI
+	0xC3,             // RETN
+};
 CODEDECL char memcpy[] =
 /*
 void *__cdecl memcpy(void *, const void *, unsigned long long)
@@ -64,4 +81,20 @@ CODEDECL char __lgdt[] =
 {
 	0x0F, 0x01, 0x11, // LGDT [RCX]
 	0xC3              // RET
+};
+CODEDECL char memcpyq[] =
+/*
+void *__cdecl memcpyq(void *, const void *, unsigned long long)
+*/
+{
+	0x56,             // PUSH RSI
+	0x57,             // PUSH RDI
+	0x48, 0x8B, 0xC1, // MOV  RAX, RCX
+	0x48, 0x8B, 0xF9, // MOV  RDI, RCX
+	0x48, 0x8B, 0xF2, // MOV  RSI, RDX
+	0x49, 0x8B, 0xC8, // MOV  RCX, R8
+	0xF3, 0x48, 0xA5, // REP MOVSQ
+	0x5F,             // POP  RDI
+	0x5E,             // POP  RSI
+	0xC3,             // RETN
 };
