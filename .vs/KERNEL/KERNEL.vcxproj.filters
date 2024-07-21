@@ -31,11 +31,23 @@
     <Filter Include="SOURCE\memory">
       <UniqueIdentifier>{baa24581-dc8e-45d3-8939-46e12a5f4773}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\device">
+      <UniqueIdentifier>{387f82cd-9183-4556-8899-500ce16a7723}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\device">
+      <UniqueIdentifier>{f9681b45-fb99-4716-b21f-6f0aaedc11ff}</UniqueIdentifier>
+    </Filter>
     <Filter Include="HEADER\acpi">
       <UniqueIdentifier>{51f6fe51-00b2-462d-ae5d-51db15606093}</UniqueIdentifier>
     </Filter>
     <Filter Include="SOURCE\acpi">
       <UniqueIdentifier>{e5f729f5-981d-45df-b1bd-4215cf09f6d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HEADER\device\usb">
+      <UniqueIdentifier>{57c84791-7a25-40b7-8208-b9942edc6127}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\device\usb">
+      <UniqueIdentifier>{7f11d55b-3332-400b-8dc7-a214ed96ce63}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -81,11 +93,26 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\memory\virtual.c">
       <Filter>SOURCE\memory</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\pci.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\xhci.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c">
       <Filter>SOURCE\acpi</Filter>
     </ClCompile>
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c">
       <Filter>SOURCE\acpi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\msc.c">
+      <Filter>SOURCE\device\usb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\hub.c">
+      <Filter>SOURCE\device\usb</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -137,11 +164,26 @@
     <ClInclude Include="..\..\KERNEL\HEADER\msr.h">
       <Filter>HEADER</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\pci.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\xhci.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\acpi.h">
       <Filter>HEADER\acpi</Filter>
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h">
       <Filter>HEADER\acpi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb\msc.h">
+      <Filter>HEADER\device\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb\hub.h">
+      <Filter>HEADER\device\usb</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

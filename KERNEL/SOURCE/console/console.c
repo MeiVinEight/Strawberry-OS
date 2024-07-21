@@ -75,15 +75,17 @@ void PAINTCHAR(BYTE x, BYTE c, DWORD cursor)
 }
 void SCROLLSCREEN()
 {
+	__cli();
 	memcpy(TEXT_MODE.TEXT, TEXT_MODE.TEXT + (SCREEN.CLM * 2), (SCREEN.CLM * (SCREEN.ROW - 1)) * 2);
 	memset(TEXT_MODE.TEXT + (SCREEN.CLM * (SCREEN.ROW - 1)) * 2, 0, SCREEN.CLM * 2);
 	SCREEN.CSR -= SCREEN.CLM;
 	if (SCREEN.DM)
 	{
-		memcpy((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4));
-		memset((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 16 * 4);
+		memcpyq((void *) SCREEN.A0, (void *) (SCREEN.A0 + (SCREEN.H * 16 * 4)), (SCREEN.H * 8 * (SCREEN.ROW - 1)));
+		memsetq((void *) (SCREEN.A0 + (SCREEN.H * 16 * (SCREEN.ROW - 1) * 4)), 0, SCREEN.H * 8);
 		TEXT_MODE.CURSOR -= SCREEN.CLM;
 	}
+	__sti();
 }
 void MOVECURSOR()
 {

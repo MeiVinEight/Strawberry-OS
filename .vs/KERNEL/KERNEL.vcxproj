@@ -627,6 +627,11 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\pci.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\hub.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\msc.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\xhci.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\8259A.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\apic.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\interrupt\interrupt.c" />
@@ -646,6 +651,11 @@
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\pci.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb\hub.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\usb\msc.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\xhci.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\8259A.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\apic.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\interrupt\interrupt.h" />
