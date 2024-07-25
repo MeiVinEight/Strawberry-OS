@@ -69,5 +69,5 @@ void delay(QWORD ms)
 }
 QWORD TimestampCPU()
 {
-	return __rdtsc() / (TSC_FREQUENCY_KHZ * 1000);
+	return __rdtsc() / (TSC_FREQUENCY_KHZ);
 }
