@@ -7,5 +7,6 @@
 
 void setup_timer();
 void delay(QWORD);
+QWORD TimestampCPU();
 
 #endif

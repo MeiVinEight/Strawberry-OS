@@ -65,5 +65,9 @@ void delay(QWORD ms)
 		__halt();
 	}
 	// Step.2 Use a hardware timer to wait micro time
-		while (__rdtsc() < stop) __nop();
-	}
+	while (__rdtsc() < stop) __nop();
+}
+QWORD TimestampCPU()
+{
+	return __rdtsc() / (TSC_FREQUENCY_KHZ * 1000);
+}
