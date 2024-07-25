@@ -311,6 +311,23 @@ void PRINTMEMORY(void *b, QWORD length)
 		}
 	}
 }
+void OUTPUTWORD(QWORD x)
+{
+	if (x)
+	{
+		char buf[33];
+		buf[32] = 0;
+		DWORD idx = 32;
+		while (x)
+		{
+			buf[--idx] = (x % 10) + '0';
+			x /= 10;
+		}
+		OUTPUTTEXT(buf + idx);
+		return;
+	}
+	OUTCHAR('0');
+}
 void loop()
 {
 	while (1) __halt();
@@ -417,15 +434,23 @@ void OutputNumber(QWORD x)
 	}
 	OutputText(num);
 }
-void DetectingScreen(EFI_GRAPHICS_OUTPUT_PROTOCOL *graphics)
+int DetectingScreen(EFI_GRAPHICS_OUTPUT_PROTOCOL *graphics)
 {
 	int defaultMode = graphics->Mode->Mode;
+	QWORD sqr = graphics->Mode->Info->HorizontalResolution * graphics->Mode->Info->VerticalResolution;
+	int usedMode = defaultMode;
 	char sep[2] = { 0, 0 };
 	for (int i = 0; i < graphics->Mode->MaxMode; i++)
 	{
 		graphics->SetMode(graphics, i);
 		MODE[i].H = graphics->Mode->Info->HorizontalResolution;
 		MODE[i].V = graphics->Mode->Info->VerticalResolution;
+		QWORD x = MODE[i].H * MODE[i].V;
+		if (x > sqr)
+		{
+			sqr = x;
+			usedMode = i;
+		}
 	}
 	graphics->SetMode(graphics, defaultMode);
 	for (int i = 0; i < graphics->Mode->MaxMode; i++)
@@ -442,7 +467,7 @@ void DetectingScreen(EFI_GRAPHICS_OUTPUT_PROTOCOL *graphics)
 		sep[0] = '\n';
 		OutputText(sep);
 	}
-	while (1) __halt();
+	return usedMode;
 }
 
 QWORD EFIMainCRTStartup(void *handle, EFI_SYSTEM_TABLE *systemTable)
@@ -452,11 +477,26 @@ QWORD EFIMainCRTStartup(void *handle, EFI_SYSTEM_TABLE *systemTable)
 
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *graphics = 0;
 	SYSTEM_TABLE->BootServices->LocateProtocol(EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID, 0, &graphics);
-	//DetectingScreen(graphics);
-	graphics->SetMode(graphics, 0);
-	memset((void *) graphics->Mode->FrameBufferBase, 0, graphics->Mode->FrameBufferSize);
+
+	graphics->SetMode(graphics, DetectingScreen(graphics));
+	OutputText("Strawberry-EFI\r\n");
+	// memset((void *) graphics->Mode->FrameBufferBase, 0, graphics->Mode->FrameBufferSize);
+	QWORD screenSize = graphics->Mode->Info->HorizontalResolution * graphics->Mode->Info->VerticalResolution;
+	for (DWORD i = 0; i < screenSize; i++)
+	{
+		((DWORD *) graphics->Mode->FrameBufferBase)[i] = 0;
+	}
+
 	setup_console(graphics);
-	OUTPUTTEXT("Strawberry-EFI\n");
+	SCREEN.CLR = 0x0B;
+	OUTPUTTEXT("Strawberry-EFI ");
+	SCREEN.CLR = 0x0F;
+	OUTPUTWORD(SCREEN.H);
+	OUTCHAR('x');
+	OUTPUTWORD(SCREEN.V);
+	OUTCHAR(':');
+	PRINTRAX(graphics->Mode->Info->PixelFormat, 2);
+	LINEFEED();
 
 	OUTPUTTEXT("GOP:");
 	PRINTRAX(graphics->Mode->FrameBufferBase, 16);
@@ -541,10 +581,19 @@ QWORD EFIMainCRTStartup(void *handle, EFI_SYSTEM_TABLE *systemTable)
 	MEMORY_REGION *beg = (MEMORY_REGION *) 0x3020;
 	memset(beg, 0, sizeof(MEMORY_REGION));
 	beg->F = 0xFF;
+	// OUTPUTTEXT("Base Address       Length             Type\n");
 	for (QWORD i = 0; i < entries; i++)
 	{
 		MEMORY_REGION region;
 		EFI_MEMORY_DESCRIPTOR *memory = (EFI_MEMORY_DESCRIPTOR *) MMA;
+		/*
+		PRINTRAX(memory->PhysicalStart, 16);
+		OUTPUTTEXT(" | ");
+		PRINTRAX(memory->NumberOfPages << 12, 16);
+		OUTPUTTEXT(" | ");
+		OUTPUTTEXT(MEMORY_TYPE + 27 * memory->Type);
+		LINEFEED();
+		*/
 		//OutputMemoryMap(memory);
 		//LINEFEED();
 		MMA += MapDescSize;
@@ -601,5 +650,6 @@ QWORD EFIMainCRTStartup(void *handle, EFI_SYSTEM_TABLE *systemTable)
 		beg++;
 	}
 	SYSTEM_TABLE->BootServices->ExitBootServices(handle, MapKey);
+	// while (1) __halt();
 	return jmp((QWORD(*)()) entry);
 }
