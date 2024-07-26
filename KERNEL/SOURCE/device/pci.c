@@ -14,7 +14,7 @@ CODEDECL const char MSG0801[] = "PCI(";
 CODEDECL const char MSG0802[] = ") ";
 CODEDECL const char MSG0803[] = "ERROR:PIO ENABLED\n";
 CODEDECL const char MSG0804[] = "ERROR:CAN NOT MAP MEMORY BAR OVER 4G\n";
-CODEDECL PCI_DEVICE *ALL_PCI_DEVICES = 0;
+CODEDECL PCI_DEVICE *ALL_PCI_DEVICE = 0;
 
 void SetupPCI()
 {
@@ -36,12 +36,12 @@ void PCIDevice()
 			// Insert head
 			PCI_DEVICE *device = (PCI_DEVICE *) HeapAlloc(HEAPK, sizeof(PCI_DEVICE));
 			device->A = addr;
-			device->A1 = ALL_PCI_DEVICES;
-			if (ALL_PCI_DEVICES)
+			device->A1 = ALL_PCI_DEVICE;
+			if (ALL_PCI_DEVICE)
 			{
-				ALL_PCI_DEVICES->A0 = device;
+				ALL_PCI_DEVICE->A0 = device;
 			}
-			ALL_PCI_DEVICES = device;
+			ALL_PCI_DEVICE = device;
 		}
 	}
 }

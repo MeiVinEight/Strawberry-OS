@@ -28,7 +28,7 @@ typedef struct _PCI_DEVICE
 	struct _PCI_DEVICE *A1; // Next node
 } PCI_DEVICE;
 
-extern PCI_DEVICE *ALL_PCI_DEVICES;
+extern PCI_DEVICE *ALL_PCI_DEVICE;
 
 void SetupPCI();
 void PCIDevice();

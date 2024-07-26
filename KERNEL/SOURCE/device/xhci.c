@@ -25,7 +25,6 @@ CODEDECL const DWORD SPEED_XHCI[16] =
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
 CODEDECL USB_HUB_OPERATION XHCI_OPERARTION;
-CODEDECL int debug = 0;
 
 void SetupXHCI()
 {
@@ -34,7 +33,7 @@ void SetupXHCI()
 	XHCI_OPERARTION.RST = XHCIHUBReset;
 	XHCI_OPERARTION.DCC = XHCIHUBDisconnect;
 	// Foreach device list
-	PCI_DEVICE *dvc = ALL_PCI_DEVICES;
+	PCI_DEVICE *dvc = ALL_PCI_DEVICE;
 	while (dvc)
 	{
 		if (PCIGetClassInterface(dvc->A) == PCI_CLASS_XHCI)
@@ -77,6 +76,7 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 {
 	XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) HeapAlloc(HEAPK, sizeof(XHCI_CONTROLLER));
 	memset(controller, 0, sizeof(XHCI_CONTROLLER));
+	controller->USB.TYPE = USB_TYPE_XHCI;
 	controller->CR = (XHCI_CAPABILITY *)  (bar);
 	controller->OR = (XHCI_OPERATIONAL *) (bar + controller->CR->CL);
 	controller->PR = (XHCI_PORT *)        (bar + controller->CR->CL + 0x400);
@@ -126,7 +126,7 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 			}
 			else
 			{
-				
+				/*
 				QWORD txt = 0x2049434858; // XHCI
 				OUTPUTTEXT((char *) &txt);
 				txt = 0x2050414358; // XCAP
@@ -136,7 +136,7 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 				OUTPUTTEXT((char *) &txt);
 				PRINTRAX(addr, 16);
 				LINEFEED();
-				
+				*/
 			}
 			off = (cap >> 8) & 0xFF;
 			addr += (QWORD) off << 2;
@@ -445,7 +445,7 @@ QWORD XHCICreateInputContext(USB_COMMON *usbdev, DWORD maxepid)
 		USB_COMMON *hubdev = usbdev->HUB->DEVICE;
 		if (usbdev->SPD == USB_LOWSPEED || usbdev->SPD == USB_FULLSPEED)
 		{
-			XHCI_PIPE *hpipe = (XHCI_PIPE *) hubdev->PIPE->PIPE;
+			XHCI_PIPE *hpipe = (XHCI_PIPE *) hubdev->PIPE;
 			if (hubdev->SPD == USB_HIGHSPEED)
 			{
 				sctx->TTID = hpipe->SID;
@@ -477,22 +477,28 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 {
 	if (!epdesc)
 	{
+		// Free
+		if (upipe)
+		{
+			XHCI_PIPE *xpipe = (XHCI_PIPE *) upipe;
+			FreePhysicalMemory((QWORD) xpipe->RING.RING, PAGE4_4K, 1);
+			HeapFree(xpipe);
+		}
 		return 0;
 	}
 	if (!upipe)
 	{
 		XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) common->CTRL;
-		BYTE eptype = epdesc->AT & USB_ENDPOINT_XFERTYPE_MASK;
+		BYTE eptype = epdesc->AT & USB_ENDPOINT_XFER_TYPE;
 		DWORD epid = 1;
-		if (epdesc->EA != 0)
+		if (epdesc->EA)
 		{
-			epid = (epdesc->EA & 0x0f) * 2;
+			epid = (epdesc->EA & 0x0f) << 1;
 			epid += (epdesc->EA & USB_DIR_IN) ? 1 : 0;
 		}
 
 		XHCI_PIPE *pipe = HeapAlloc(HEAPK, sizeof(XHCI_PIPE));
 		memset(pipe, 0, sizeof(XHCI_PIPE));
-		pipe->USB.PIPE = (QWORD) pipe;
 		USBD2P(&pipe->USB, common, epdesc);
 		pipe->EPID = epid;
 		XHCICreateTransferRing(&pipe->RING);
@@ -529,10 +535,12 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 			epctx->ITV = period + 3;
 		}
 		epctx->EPT = eptype;
-		if (epdesc->EA & USB_DIR_IN || eptype == USB_ENDPOINT_XFER_CONTROL)
+		
+		if (eptype == USB_ENDPOINT_XFER_CONTROL)
 		{
 			epctx->EPT = EP_CONTROL;
 		}
+		
 		epctx->MPSZ = pipe->USB.MPS;
 		epctx->TRDP = physical_mapping((QWORD) pipe->RING.RING) >> 4;
 		epctx->DCS = 1;
@@ -631,7 +639,7 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 		}
 		else
 		{
-			XHCI_PIPE *defpipe = (XHCI_PIPE *) common->PIPE->PIPE;
+			XHCI_PIPE *defpipe = (XHCI_PIPE *) common->PIPE;
 			pipe->SID = defpipe->SID;
 			// Send configure command
 			XHCI_TRB_CONFIGURE_ENDPOINT trb;
@@ -642,7 +650,7 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 			DWORD cc;
 			if (cc = XHCICommand(controller, &trb.TRB) != 1)
 			{
-				OUTPUTTEXT("CONFIGURE HUB FAILED ");
+				OUTPUTTEXT("CONFIGURE ENDPOINT FAILED ");
 				PRINTRAX(cc, 2);
 				LINEFEED();
 				goto FAILED;
@@ -657,10 +665,10 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 		HeapFree(pipe);
 		return 0;
 	}
-	BYTE eptype = epdesc->AT & USB_ENDPOINT_XFERTYPE_MASK;
+	BYTE eptype = epdesc->AT & USB_ENDPOINT_XFER_TYPE;
 	DWORD oldmp = upipe->MPS;
 	USBD2P(upipe, common, epdesc);
-	XHCI_PIPE *pipe = (XHCI_PIPE *) upipe->PIPE;
+	XHCI_PIPE *pipe = (XHCI_PIPE *) upipe;
 	XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) upipe->CTRL;
 	if (eptype != USB_ENDPOINT_XFER_CONTROL || upipe->MPS == oldmp)
 	{
@@ -699,15 +707,15 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 	FreePhysicalMemory(physical_mapping((QWORD) in), PAGE4_4K, 1);
 	return upipe;
 }
-DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data)
+DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data, DWORD xferlen)
 {
-	XHCI_PIPE *xpipe = (XHCI_PIPE *) pipe->PIPE;
+	XHCI_PIPE *xpipe = (XHCI_PIPE *) pipe;
 	XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) pipe->CTRL;
 	DWORD slotid = xpipe->SID;
 	XHCI_TRANSFER_RING *ring = &xpipe->RING;
-	DWORD dir = (req->T & 0x80) >> 7;
 	if (req)
 	{
+		DWORD dir = (req->T & 0x80) >> 7;
 		if (req->C == USB_REQ_SET_ADDRESS)
 			return 0;
 		XHCI_TRB_SETUP_STAGE trb0;
@@ -735,13 +743,20 @@ DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data)
 		trb2.IOC = 1;
 		trb2.DIR = 1 ^ dir;
 		XHCIQueueTRB(ring, &trb2.TRB);
-		controller->DR[slotid] = 1;
+		controller->DR[slotid] = xpipe->EPID;
 	}
 	else
 	{
-		OUTPUTTEXT("XHCI TRANSFER NORMAL\n");
-		while (1) __halt();
-		// TODO XHCI Transfer Normal
+		// XHCI Transfer Normal
+		// while (1) __halt();
+		XHCI_TRB_NORMAL trb;
+		memset(&trb, 0, sizeof(XHCI_TRB_NORMAL));
+		trb.DATA = physical_mapping((QWORD) data);
+		trb.TL = xferlen;
+		trb.IOC = 1;
+		trb.TYPE = TRB_NORMAL;
+		XHCIQueueTRB(ring, &trb.TRB);
+		controller->DR[slotid] = xpipe->EPID;
 	}
 	DWORD cc;
 	if (cc = XHCIWaitCompletion(controller, ring) != 1)

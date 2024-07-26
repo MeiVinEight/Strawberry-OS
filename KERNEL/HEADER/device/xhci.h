@@ -201,11 +201,33 @@ typedef struct _XHCI_ENDPOINT_CONTEXT
 } XHCI_ENDPOINT_CONTEXT;
 typedef struct _XHCI_PIPE
 {
-	XHCI_TRANSFER_RING RING;
 	USB_PIPE USB;
+	XHCI_TRANSFER_RING RING;
 	DWORD SID;
 	DWORD EPID;
 } XHCI_PIPE;
+typedef union _XHCI_TRB_NORMAL
+{
+	XHCI_TRANSFER_BLOCK TRB;
+	struct
+	{
+		QWORD DATA;
+		DWORD TL  :0x11; // TRB Transfer Length
+		DWORD TDS :0x05; // TD Size
+		DWORD IT  :0x0A; // Interrupt Target
+		DWORD C   :0x01; // Cycle
+		DWORD ENT :0x01; // Evaluate Next TRB
+		DWORD ISP :0x01; // Interrupt on Short Packet
+		DWORD NS  :0x01; // No Snoop
+		DWORD CH  :0x01; // Chain
+		DWORD IOC :0x01; // Interrupt On Complete
+		DWORD IDT :0x01; // Immediate Data
+		DWORD RSV0:0x02;
+		DWORD BEI :0x01; // Block Event Interrupt
+		DWORD TYPE:0x06; // TRB Type
+		DWORD RSV1:0x10;
+	};
+} XHCI_TRB_NORMAL;
 typedef union _XHCI_TRB_SETUP_STAGE
 {
 	XHCI_TRANSFER_BLOCK TRB;
@@ -472,7 +494,7 @@ DWORD XHCIHUBDetect(USB_HUB *, DWORD);
 DWORD XHCIHUBReset(USB_HUB *, DWORD);
 DWORD XHCIHUBDisconnect(USB_HUB *, DWORD);
 USB_PIPE *XHCICreatePipe(USB_COMMON *, USB_PIPE *, USB_ENDPOINT *);
-DWORD XHCITransfer(USB_PIPE *, USB_DEVICE_REQUEST *, void *);
+DWORD XHCITransfer(USB_PIPE *, USB_DEVICE_REQUEST *, void *, DWORD);
 void XHCICreateTransferRing(XHCI_TRANSFER_RING *);
 
 #endif

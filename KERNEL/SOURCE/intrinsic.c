@@ -98,3 +98,25 @@ void *__cdecl memcpyq(void *, const void *, unsigned long long)
 	0x5E,             // POP  RSI
 	0xC3,             // RETN
 };
+WORD __reverse16(WORD x)
+{
+	return (x << 8) | (x >> 8);
+}
+DWORD __reverse32(DWORD x)
+{
+	DWORD y = 0;
+	WORD *a = (WORD *) &x;
+	WORD *b = (WORD *) &y;
+	b[0] = __reverse16(a[1]);
+	b[1] = __reverse16(a[0]);
+	return y;
+}
+QWORD __reverse64(QWORD x)
+{
+	QWORD y = 0;
+	DWORD *a = (DWORD *) &x;
+	DWORD *b = (DWORD *) &y;
+	b[0] = __reverse32(a[1]);
+	b[1] = __reverse32(a[0]);
+	return y;
+}

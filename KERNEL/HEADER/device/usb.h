@@ -2,6 +2,7 @@
 #define __KERNEL_DEVICE_USB_H__
 
 #include <types.h>
+#include <device/disk.h>
 
 #define USB_TYPE_UHCI  1
 #define USB_TYPE_OHCI  2
@@ -13,11 +14,12 @@
 #define USB_HIGHSPEED  2
 #define USB_SUPERSPEED 3
 
-#define USB_ENDPOINT_XFERTYPE_MASK      0x03    /* in bmAttributes */
+#define USB_ENDPOINT_XFER_TYPE          0x03    /* in bmAttributes */
 #define USB_ENDPOINT_XFER_CONTROL       0
 #define USB_ENDPOINT_XFER_ISOC          1
 #define USB_ENDPOINT_XFER_BULK          2
 #define USB_ENDPOINT_XFER_INT           3
+#define USB_ENDPOINT_DIR                0x80
 
 #define USB_MAXADDR  127
 
@@ -69,9 +71,16 @@
 #define USB_CLASS_MASS_STORAGE          0x08
 #define USB_CLASS_HUB                   0x09
 
+#define US_PR_BULK         0x50  /* bulk-only transport */
+#define US_PR_UAS          0x62  /* usb attached scsi   */
+
+#define USB_CDB_SIZE 12
+
+#define CBW_SIGNATURE 0x43425355 // USBC
+
 struct _USB_COMMON;
 struct _USB_HUB;
-struct _USB_PIPE;
+typedef struct _USB_PIPE USB_PIPE;
 struct _USB_ENDPOINT;
 struct _USB_CONTROLLER;
 typedef struct _USB_DEVICE_REQUEST
@@ -150,15 +159,19 @@ typedef struct _USB_HUB
 } USB_HUB;
 typedef struct _USB_PIPE
 {
-	QWORD PIPE;
 	struct _USB_CONTROLLER *CTRL;
 	WORD MPS;
 } USB_PIPE;
 typedef struct _USB_COMMON
 {
+	struct _USB_COMMON *A0; // L
+	struct _USB_COMMON *A1; // R
 	struct _USB_CONTROLLER *CTRL;
+	USB_CONFIG *CFG;
+	USB_INTERFACE *IFC;
 	USB_HUB *HUB;
 	USB_PIPE *PIPE;
+	DEVICE_DRIVER *DRV;
 	DWORD PORT;
 	DWORD SPD;
 } USB_COMMON;
@@ -166,10 +179,36 @@ typedef struct _USB_CONTROLLER
 {
 	USB_HUB RH; // Root Hub
 	struct _USB_PIPE *(*CPIP)(struct _USB_COMMON *, struct _USB_PIPE *, struct _USB_ENDPOINT *);
-	DWORD (*XFER)(USB_PIPE *, USB_DEVICE_REQUEST *, void *);
+	DWORD (*XFER)(USB_PIPE *, USB_DEVICE_REQUEST *, void *, DWORD);
 	BYTE TYPE;
 	BYTE MA; // Max Address
 } USB_CONTROLLER;
+typedef struct _USB_COMMAND_BLOCK_WRAPPER
+{
+	DWORD SIG;     // CBW Signature, fixed 0x43425355 ('USBC')
+	DWORD TAG;     // CBW Identifier, device return it in CSW.dCSWTag
+	DWORD DTL;     // CBW Required byte count while transfering
+	BYTE  FLG;     // Data transfer direction, OUT=0x00, IN=0x80
+	BYTE  LUN;     // LUN ID
+	BYTE  CBL;     // Command length, in [0,16]
+	BYTE  CMD[16]; // Command to transfer
+} USB_COMMAND_BLOCK_WRAPPER;
+#pragma pack(1)
+typedef struct _USB_COMMAND_STATUS_WRAPPER
+{
+	DWORD SIG;
+	DWORD TAG;
+	DWORD RSD; // Remainder data size
+	BYTE  STS; // Command status, 0 means correct
+} USB_COMMAND_STATUS_WRAPPER;
+#pragma pack()
+typedef struct _USB_DISK_DRIVER
+{
+	DISK_DRIVER DVR;
+	USB_PIPE   *BIP;
+	USB_PIPE   *BOP;
+	DWORD       LUN;
+} USB_DISK_DRIVER;
 
 extern const DWORD SPEED_TO_CTRL_SIZE[];
 
@@ -177,5 +216,6 @@ DWORD USBEnumerate(USB_HUB *);
 DWORD USBSetAddress(USB_COMMON *);
 DWORD ConfigureUSB(USB_COMMON *);
 void USBD2P(USB_PIPE *, USB_COMMON *, USB_ENDPOINT *);
+USB_ENDPOINT *USBSearchEndpoint(USB_COMMON *, int, int);
 
 #endif
