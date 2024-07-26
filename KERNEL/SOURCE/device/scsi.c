@@ -26,7 +26,6 @@ int SCSIWaitReady(DISK_OPERATION *op)
 		op->DAT = 0;
 		op->CDB = &cmd0;
 		op->BSZ = 0;
-		debug = 1;
 		if (!ExecuteDiskOperation(op)) break;
 
 		SCSI_DAT_REQUEST_SENSE sense;
