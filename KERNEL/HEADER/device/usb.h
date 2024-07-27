@@ -211,6 +211,7 @@ typedef struct _USB_DISK_DRIVER
 } USB_DISK_DRIVER;
 
 extern const DWORD SPEED_TO_CTRL_SIZE[];
+extern USB_CONTROLLER *USB_CTRL;
 
 DWORD USBEnumerate(USB_HUB *);
 DWORD USBSetAddress(USB_COMMON *);

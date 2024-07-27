@@ -13,6 +13,7 @@
 #define PCI_BASE_ADDRESS_3	0x1c	/* 32 bits */
 #define PCI_BASE_ADDRESS_4	0x20	/* 32 bits */
 #define PCI_BASE_ADDRESS_5	0x24	/* 32 bits */
+#define PCI_BASE_CAPABILITY 0x34
 
 #define PCI_COMMAND_MEMORY  0x2	/* Enable response in Memory space */
 #define PCI_COMMAND_MASTER  0x4	/* Enable bus mastering */
@@ -22,7 +23,7 @@
 
 typedef struct _PCI_DEVICE
 {
-	DWORD A;                // BUS DEVICE FUNCTION and ENABLE
+	DWORD CMD;                // BUS DEVICE FUNCTION and ENABLE
 	QWORD DEVICE;           // Device struct pointer
 	struct _PCI_DEVICE *A0; // Prev node
 	struct _PCI_DEVICE *A1; // Next node

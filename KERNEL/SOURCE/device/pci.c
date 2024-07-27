@@ -35,7 +35,7 @@ void PCIDevice()
 		{
 			// Insert head
 			PCI_DEVICE *device = (PCI_DEVICE *) HeapAlloc(HEAPK, sizeof(PCI_DEVICE));
-			device->A = addr;
+			device->CMD = addr;
 			device->A1 = ALL_PCI_DEVICE;
 			if (ALL_PCI_DEVICE)
 			{

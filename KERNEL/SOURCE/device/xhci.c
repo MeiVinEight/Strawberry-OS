@@ -8,6 +8,7 @@
 #include <timer/timer.h>
 #include <memory/page.h>
 #include <device/usb.h>
+#include <interrupt/interrupt.h>
 
 #define PCI_CLASS_XHCI 0x0C0330
 
@@ -26,6 +27,15 @@ CODEDECL const DWORD SPEED_XHCI[16] =
 };
 CODEDECL USB_HUB_OPERATION XHCI_OPERARTION;
 
+void InterruptXHCI(INTERRUPT_STACK *stack)
+{
+	XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) USB_CTRL;
+	while (XHCIProcessEvent(controller));
+	/*
+	* EHB bit is a W1C bit, Write 1 to clear
+	*/
+	controller->RR->IR[0].ERD = controller->RR->IR[0].ERD & (~0x7ULL);
+}
 void SetupXHCI()
 {
 	OUTPUTTEXT(MSG0900);
@@ -36,7 +46,7 @@ void SetupXHCI()
 	PCI_DEVICE *dvc = ALL_PCI_DEVICE;
 	while (dvc)
 	{
-		if (PCIGetClassInterface(dvc->A) == PCI_CLASS_XHCI)
+		if (PCIGetClassInterface(dvc->CMD) == PCI_CLASS_XHCI)
 		{
 			SetupXHCIControllerPCI(dvc);
 		}
@@ -45,20 +55,72 @@ void SetupXHCI()
 }
 void SetupXHCIControllerPCI(PCI_DEVICE *dvc)
 {
-	OutputPCIDevice(dvc->A);
+	OutputPCIDevice(dvc->CMD);
 	// Enable this pci device mmio
-	QWORD bar = PCIEnableMMIO(dvc->A, PCI_BASE_ADDRESS_0);
+	QWORD bar = PCIEnableMMIO(dvc->CMD, PCI_BASE_ADDRESS_0);
 	if (!bar)
 	{
 		return;
 	}
 	// Enable busmaster
 	// Read command register and set MASTER bit
-	__outdword(PCI_CONFIG_ADDRESS, dvc->A + PCI_COMMAND);
+	__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + PCI_COMMAND);
 	WORD val = __inword(PCI_CONFIG_DATA) | PCI_COMMAND_MASTER;
 	// Write to command register
-	__outdword(PCI_CONFIG_ADDRESS, dvc->A + PCI_COMMAND);
+	__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + PCI_COMMAND);
 	__outword(PCI_CONFIG_DATA, val);
+
+	__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + PCI_BASE_CAPABILITY);
+	WORD cp = __indword(PCI_CONFIG_DATA) & 0xFF;
+	while (cp)
+	{
+		// PRINTRAX(cp, 4);
+		// OUTCHAR(' ');
+		__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp);
+		DWORD capa = __indword(PCI_CONFIG_DATA);
+		WORD capid = capa & 0xFF;
+		// PRINTRAX(capid, 2);
+		// LINEFEED();
+		if (capid == 5)
+		{
+			// Interrupt Vector may not exceed 0x2F ?
+			BYTE xhciIntVec = 0x21;
+			if (capa & 0x00800000)
+			{
+				// MSI Capability 64
+				capa |= (1 << 16); // MSI Enable
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp);
+				__outdword(PCI_CONFIG_DATA, capa);
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp + 4); // MSI Message Address low 32
+				__outdword(PCI_CONFIG_DATA, 0xFEE00000);
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp + 8); // MSI Message Address high 32
+				__outdword(PCI_CONFIG_DATA, 0);
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp + 12); // MSI Message Data
+				__outword(PCI_CONFIG_DATA, xhciIntVec);
+			}
+			else
+			{
+				// MSI Capability 32
+				capa |= (1 << 16); // MSI Enable
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp);
+				__outdword(PCI_CONFIG_DATA, capa);
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp + 4); // MSI Message Address 32
+				__outdword(PCI_CONFIG_DATA, 0xFEE00000);
+				__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp + 8); // MSI Message Address 32
+				__outword(PCI_CONFIG_DATA, xhciIntVec);
+			}
+			// Interrupt Vector may not exceed 0x2F ?
+			register_interrupt(xhciIntVec, InterruptXHCI);
+		}
+		else if (capid == 0x11)
+		{
+			// Disable MSI-X
+			capa &= ~(1 << 31); // MSI-X Enable
+			__outdword(PCI_CONFIG_ADDRESS, dvc->CMD + cp);
+			__outdword(PCI_CONFIG_DATA, capa);
+		}
+		cp = (capa >> 8) & 0xFF;
+	}
 
 	XHCI_CONTROLLER *controller = SetupXHCIController(bar);
 	if (!controller)
@@ -66,6 +128,7 @@ void SetupXHCIControllerPCI(PCI_DEVICE *dvc)
 		return;
 	}
 	dvc->DEVICE = (QWORD) controller;
+	USB_CTRL = (USB_CONTROLLER *) controller;
 	if (ConfigureXHCI(controller))
 	{
 		HeapFree(controller);
@@ -203,6 +266,8 @@ DWORD ConfigureXHCI(XHCI_CONTROLLER *controller)
 	controller->SEG->S = XHCI_RING_ITEMS;
 
 	controller->EVT.CCS = 1;
+	controller->RR->IR[0].IMOD = 0;
+	controller->RR->IR[0].IMAN |= 2; // Interrupt Enable
 	controller->RR->IR[0].TS = 1;
 	controller->RR->IR[0].ERS = physical_mapping((QWORD) controller->SEG);
 	controller->RR->IR[0].ERD = physical_mapping((QWORD) controller->EVT.RING);
@@ -231,6 +296,7 @@ DWORD ConfigureXHCI(XHCI_CONTROLLER *controller)
 		controller->DVC[0] = physical_mapping((QWORD) spba);
 	}
 
+	controller->OR->CMD |= XHCI_CMD_INTE;
 	controller->OR->CMD |= XHCI_CMD_RS;
 	
 	// Find devices
@@ -281,14 +347,14 @@ void XHCIDoorbell(XHCI_CONTROLLER *controller, DWORD slot, DWORD value)
 {
 	controller->DR[slot] = value;
 }
-void XHCIProcessEvent(XHCI_CONTROLLER *controller)
+DWORD XHCIProcessEvent(XHCI_CONTROLLER *controller)
 {
 	// Check for event
 	XHCI_TRANSFER_RING *event = &controller->EVT;
 	DWORD nid = event->NID;
 	XHCI_TRANSFER_BLOCK *trb = event->RING + nid;
-	if (trb->TYPE == 0) return;
-	if ((trb->C != event->CCS)) return;
+	if (trb->TYPE == 0) return 0;
+	if ((trb->C != event->CCS)) return 0;
 
 	// Process event
 	DWORD eventType = trb->TYPE;
@@ -335,12 +401,13 @@ void XHCIProcessEvent(XHCI_CONTROLLER *controller)
 	}
 	event->NID = nid;
 	controller->RR->IR[0].ERD = physical_mapping((QWORD) (event->RING + event->NID));
+	return 1;
 }
 DWORD XHCIWaitCompletion(XHCI_CONTROLLER *controller, XHCI_TRANSFER_RING *ring)
 {
 	while (ring->EID != ring->NID)
 	{
-		XHCIProcessEvent(controller);
+		// XHCIProcessEvent(controller); // Use xhci interrupt
 		__halt();
 	}
 	return ring->EVT.DATA[2] >> 24;

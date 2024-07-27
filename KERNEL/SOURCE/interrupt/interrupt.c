@@ -64,6 +64,17 @@ void __isr_common(INTERRUPT_STACK *stack)
 	{
 		INTERRUPT_ROUTINE[id](stack);
 	}
+	else
+	{
+		OUTPUTTEXT("CPU #");
+		PRINTRAX(CurrentAPIC(), 2);
+		OUTPUTTEXT(" INT #");
+		PRINTRAX(id, 2);
+		LINEFEED();
+		OUTPUTTEXT("RIP ");
+		PRINTRAX(stack->RIP, 16);
+		LINEFEED();
+	}
 }
 void register_interrupt(BYTE id, void (*routine)(INTERRUPT_STACK*))
 {

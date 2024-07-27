@@ -8,6 +8,7 @@
 #include <device/usb/hub.h>
 #include <device/usb/msc.h>
 
+CODEDECL USB_CONTROLLER *USB_CTRL = 0;
 CODEDECL USB_COMMON *ALL_USB_DEVICE = 0;
 
 CODEDECL const DWORD SPEED_TO_CTRL_SIZE[] =
