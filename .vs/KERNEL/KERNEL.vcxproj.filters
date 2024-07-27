@@ -114,6 +114,12 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\hub.c">
       <Filter>SOURCE\device\usb</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\scsi.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\disk.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\types.h">
@@ -184,6 +190,15 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\device\usb\hub.h">
       <Filter>HEADER\device\usb</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\disk.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\driver.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\scsi.h">
+      <Filter>HEADER\device</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

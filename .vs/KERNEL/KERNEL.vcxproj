@@ -627,7 +627,9 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\disk.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\pci.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\scsi.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\usb.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\hub.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\usb\msc.c" />
@@ -651,7 +653,10 @@
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\disk.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\driver.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\pci.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\scsi.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\usb.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\usb\hub.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\usb\msc.h" />
