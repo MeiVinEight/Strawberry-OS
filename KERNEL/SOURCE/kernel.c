@@ -10,6 +10,7 @@
 #include <memory/virtual.h>
 #include <interrupt/apic.h>
 #include <acpi/acpi.h>
+#include <device/pci.h>
 
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
@@ -44,6 +45,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	setup_paging();
 	SetupVirtualMemory();
 	SetupACPI();
+	SetupPCI();
 	
 	OUTPUTTEXT(OK);
 	while (1) __halt();
@@ -51,6 +53,7 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 void APMainStartup()
 {
 	setup_segment();
+	SetupCPU();
 	SetupIDT();
 	ConfigureAPIC();
 	OutputCPU();

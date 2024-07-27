@@ -29,8 +29,7 @@ int ConfigureHUB(USB_COMMON *common)
 	}
 	req.I = 0;
 	req.L = sizeof(USB_HUB_DESCRIPTOR);
-	OUTPUTTEXT("GET HUB DESCRIPTOR\n");
-	int cc = common->CTRL->XFER(common->PIPE, &req, &desc);
+	int cc = common->CTRL->XFER(common->PIPE, &req, &desc, 0);
 	if (cc)
 	{
 		OUTPUTTEXT("CANNOT GET HUB DESCRIPTOR\n");
@@ -56,7 +55,7 @@ DWORD USBHUBDetect(USB_HUB *hub, DWORD port)
 	req.V = 0;
 	req.I = port + 1;
 	req.L = sizeof(USB_PORT_STATUS);
-	int cc = hub->DEVICE->CTRL->XFER(hub->DEVICE->PIPE, &req, &sts);
+	int cc = hub->DEVICE->CTRL->XFER(hub->DEVICE->PIPE, &req, &sts, 0);
 	if (cc)
 	{
 		OUTPUTTEXT("FAILURT ON HUB PORT ");
