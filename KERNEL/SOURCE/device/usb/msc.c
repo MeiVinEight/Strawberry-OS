@@ -7,7 +7,7 @@
 int MSCSendCBW(USB_DISK_DRIVER *udrive, int dir, void *buf, DWORD bytes)
 {
 	USB_PIPE *pipe = (dir == USB_DIR_OUT) ? udrive->BOP : udrive->BIP;
-	return pipe->CTRL->XFER(pipe, 0, buf, bytes);
+	return pipe->CTRL->XFER(pipe, 0, buf, bytes, 0);
 }
 DWORD OperationMSC(DISK_OPERATION *op)
 {
@@ -116,7 +116,7 @@ int ConfigureMSC(USB_COMMON *common, USB_INTERFACE *iface)
 	req.I = 0;
 	req.L = 1;
 	BYTE maxlun = 0;
-	int cc = common->CTRL->XFER(common->PIPE, &req, &maxlun, 0);
+	int cc = common->CTRL->XFER(common->PIPE, &req, &maxlun, 0, 0);
 	if (cc) maxlun = 0;
 
 	int pipesused = 0;

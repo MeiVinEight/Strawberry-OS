@@ -7,6 +7,7 @@
 #include <console/console.h>
 #include <device/usb/hub.h>
 #include <device/usb/msc.h>
+#include <device/usb/hid.h>
 
 CODEDECL USB_CONTROLLER *USB_CTRL = 0;
 CODEDECL USB_COMMON *ALL_USB_DEVICE = 0;
@@ -99,7 +100,7 @@ DWORD USBSetAddress(USB_COMMON *device)
 	req.V = controller->MA = 1;
 	req.I = 0;
 	req.L = 0;
-	DWORD cc = controller->XFER(device->PIPE, &req, 0, 0);
+	DWORD cc = controller->XFER(device->PIPE, &req, 0, 0, 0);
 	if (cc)
 	{
 		OUTPUTTEXT("CANNOT SET ADDRESS ");
@@ -130,7 +131,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 	req.V = USB_DT_DEVICE << 8;
 	req.I = 0;
 	req.L = 8;
-	DWORD cc = controller->XFER(common->PIPE, &req, &devinfo, 0);
+	DWORD cc = controller->XFER(common->PIPE, &req, &devinfo, 0, 0);
 	if (cc)
 	{
 		OUTPUTTEXT("TRANSFER FAILED ");
@@ -171,7 +172,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 		req.V = USB_DT_CONFIG << 8;
 		req.I = 0;
 		req.L = sizeof(USB_CONFIG);
-		if (controller->XFER(common->PIPE, &req, &cfg, 0))
+		if (controller->XFER(common->PIPE, &req, &cfg, 0, 0))
 		{
 			goto LABEL001;
 		}
@@ -179,7 +180,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 		config = HeapAlloc(HEAPK, cfg.TL);
 		memset(config, 0, cfg.TL);
 		req.L = cfg.TL;
-		if (controller->XFER(common->PIPE, &req, config, 0) || config->TL != cfg.TL)
+		if (controller->XFER(common->PIPE, &req, config, 0, 0) || config->TL != cfg.TL)
 		{
 			HeapFree(config);
 			config = 0;
@@ -191,7 +192,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 		OUTPUTTEXT("CANNOT GET CONFIG\n");
 		return 0;
 	}
-
+	
 
 	QWORD ic = config->IC;
 	QWORD iface = ((QWORD) config) + 9;
@@ -200,12 +201,14 @@ DWORD ConfigureUSB(USB_COMMON *common)
 	while (1)
 	{
 		USB_INTERFACE *interface = (USB_INTERFACE *) iface;
-		if ((!ic) || ((iface + interface->L) > cfend)) break; // goto FAILED;
+		if ((!ic) || ((iface + interface->L) > cfend)) goto CONFIG_FAIL; // goto FAILED;
 
 		if (interface->DT == USB_DT_INTERFACE)
 		{
 			ic--;
-			OUTPUTTEXT("USB INTERFACE L=");
+			OUTPUTTEXT("USB INTERFACE ");
+			PRINTRAX((QWORD) interface, 16);
+			OUTPUTTEXT(" L=");
 			PRINTRAX(interface->L, 2);
 			OUTPUTTEXT(" DT=");
 			PRINTRAX(interface->DT, 2);
@@ -224,6 +227,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 			OUTPUTTEXT(" II=");
 			PRINTRAX(interface->II, 2);
 			LINEFEED();
+			break;
 		}
 		iface += interface->L;
 	}
@@ -234,25 +238,33 @@ DWORD ConfigureUSB(USB_COMMON *common)
 	req.V = config->CV;
 	req.I = 0;
 	req.L = 0;
-	cc = controller->XFER(common->PIPE, &req, 0, 0);
+	cc = controller->XFER(common->PIPE, &req, 0, 0, 0);
 	if (cc)
 	{
 		OUTPUTTEXT("CANNOT SET CONFIGURATION\n");
 		goto CONFIG_FAIL;
 	}
 
-	USB_INTERFACE *interface = (USB_INTERFACE *) (((QWORD) config) + 9);
+	USB_INTERFACE *interface = (USB_INTERFACE *) iface;
 	common->CFG = config;
 	common->IFC = interface;
-	if (interface->IC == USB_CLASS_HUB)
+	cc = -1;
+	if (interface->DT == USB_DT_INTERFACE)
 	{
-		cc = ConfigureHUB(common);
-	}
-	else if (interface->IC == USB_CLASS_MASS_STORAGE)
-	{
-		if (interface->IP == US_PR_BULK)
+		if (interface->IC == USB_CLASS_HUB)
 		{
-			cc = ConfigureMSC(common, interface);
+			cc = ConfigureHUB(common);
+		}
+		else if (interface->IC == USB_CLASS_MASS_STORAGE)
+		{
+			if (interface->IP == US_PR_BULK)
+			{
+				cc = ConfigureMSC(common, interface);
+			}
+		}
+		else if (interface->IC == USB_CLASS_HID)
+		{
+			cc = ConfigureHID(common);
 		}
 	}
 	if (cc)

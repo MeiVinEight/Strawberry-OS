@@ -774,7 +774,7 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 	FreePhysicalMemory(physical_mapping((QWORD) in), PAGE4_4K, 1);
 	return upipe;
 }
-DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data, DWORD xferlen)
+DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data, DWORD xferlen, DWORD wait)
 {
 	XHCI_PIPE *xpipe = (XHCI_PIPE *) pipe;
 	XHCI_CONTROLLER *controller = (XHCI_CONTROLLER *) pipe->CTRL;
@@ -825,8 +825,12 @@ DWORD XHCITransfer(USB_PIPE *pipe, USB_DEVICE_REQUEST *req, void *data, DWORD xf
 		XHCIQueueTRB(ring, &trb.TRB);
 		controller->DR[slotid] = xpipe->EPID;
 	}
-	DWORD cc;
-	if (cc = XHCIWaitCompletion(controller, ring) != 1)
+	DWORD cc = 1;
+	if (!wait)
+	{
+		cc = XHCIWaitCompletion(controller, ring);
+	}
+	if (cc != 1)
 	{
 		return cc;
 	}

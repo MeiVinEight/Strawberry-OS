@@ -5,12 +5,14 @@
 #include <console/console.h>
 #include <intrinsic.h>
 #include <declspec.h>
+#include <device/usb/hid.h>
 
 CODEDECL const char MSG0700[] = "INVARIANT TSC\n";
 QWORD TSC_FREQUENCY_KHZ = 0;
 
 void interrupt_timer(INTERRUPT_STACK* stack)
 {
+	USBKeyboardEvent();
 	// Do nothing
 }
 void setup_timer()

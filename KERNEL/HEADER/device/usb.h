@@ -71,6 +71,10 @@
 #define USB_CLASS_MASS_STORAGE          0x08
 #define USB_CLASS_HUB                   0x09
 
+#define USB_INTERFACE_SUBCLASS_BOOT     1
+#define USB_INTERFACE_PROTOCOL_KEYBOARD 1
+#define USB_INTERFACE_PROTOCOL_MOUSE    2
+
 #define US_PR_BULK         0x50  /* bulk-only transport */
 #define US_PR_UAS          0x62  /* usb attached scsi   */
 
@@ -179,7 +183,7 @@ typedef struct _USB_CONTROLLER
 {
 	USB_HUB RH; // Root Hub
 	struct _USB_PIPE *(*CPIP)(struct _USB_COMMON *, struct _USB_PIPE *, struct _USB_ENDPOINT *);
-	DWORD (*XFER)(USB_PIPE *, USB_DEVICE_REQUEST *, void *, DWORD);
+	DWORD (*XFER)(USB_PIPE *, USB_DEVICE_REQUEST *, void *, DWORD, DWORD);
 	BYTE TYPE;
 	BYTE MA; // Max Address
 } USB_CONTROLLER;

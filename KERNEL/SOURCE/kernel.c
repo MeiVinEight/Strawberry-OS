@@ -11,6 +11,7 @@
 #include <interrupt/apic.h>
 #include <acpi/acpi.h>
 #include <device/pci.h>
+#include <device/keyboard.h>
 
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
@@ -48,7 +49,18 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 	SetupPCI();
 	
 	OUTPUTTEXT(OK);
-	while (1) __halt();
+	while (1)
+	{
+		while (KEY_RING.EID != KEY_RING.NID)
+		{
+			BYTE code = KeyNext(&KEY_RING);
+			if (code >= 4 && code < 30)
+			{
+				OUTCHAR('A' + code - 4);
+			}
+		}
+		__halt();
+	}
 }
 void APMainStartup()
 {
