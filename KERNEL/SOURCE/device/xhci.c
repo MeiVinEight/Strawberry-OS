@@ -33,6 +33,7 @@ void InterruptXHCI(INTERRUPT_STACK *stack)
 	while (XHCIProcessEvent(controller));
 	/*
 	* EHB bit is a W1C bit, Write 1 to clear
+	* 
 	*/
 	controller->RR->IR[0].ERD = controller->RR->IR[0].ERD & (~0x7ULL);
 }
@@ -154,6 +155,7 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 	controller->XEC = ((cp1 >> 16) & 0xFFFF) << 2;
 	controller->CSZ = ((cp1 >>  2) & 0x0001);
 
+	/*
 	if (controller->XEC)
 	{
 		DWORD off = ~0;
@@ -189,7 +191,6 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 			}
 			else
 			{
-				/*
 				QWORD txt = 0x2049434858; // XHCI
 				OUTPUTTEXT((char *) &txt);
 				txt = 0x2050414358; // XCAP
@@ -199,12 +200,12 @@ XHCI_CONTROLLER *SetupXHCIController(QWORD bar)
 				OUTPUTTEXT((char *) &txt);
 				PRINTRAX(addr, 16);
 				LINEFEED();
-				*/
 			}
 			off = (cap >> 8) & 0xFF;
 			addr += (QWORD) off << 2;
 		}
 	}
+	*/
 
 	DWORD pageSize = controller->OR->PS;
 	if (pageSize != 1)
@@ -276,9 +277,11 @@ DWORD ConfigureXHCI(XHCI_CONTROLLER *controller)
 	DWORD spb = (reg >> 21 & 0x1F) << 5 | reg >> 27;
 	if (spb)
 	{
+		/*
 		OUTPUTTEXT("CREATE SCRATCHPAD ");
 		PRINTRAX(spb, 3);
 		LINEFEED();
+		*/
 		QWORD pageAddress = 0;
 		QWORD pageCount = 1;
 		QWORD *spba = 0;
@@ -463,7 +466,7 @@ DWORD XHCIHUBReset(USB_HUB *hub, DWORD port)
 		}
 		__halt();
 	}
-
+	/*
 	QWORD txt = 0x2049434858; // XHCI 
 	OUTPUTTEXT((char *) &txt);
 	txt = 0x20425355; // USB 
@@ -483,7 +486,7 @@ DWORD XHCIHUBReset(USB_HUB *hub, DWORD port)
 		OUTPUTTEXT((char *) &txt);
 	}
 	LINEFEED();
-
+	*/
 	return SPEED_XHCI[(controller->PR[port].PSC >> 10) & 0xF];
 }
 DWORD XHCIHUBDisconnect(USB_HUB *hub, DWORD port)
@@ -578,8 +581,8 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 
 		if (eptype == USB_ENDPOINT_XFER_INT)
 		{
-			OUTPUTTEXT("USB GET PERIOD\n");
 			// usb_get_period
+			/*
 			DWORD period = epdesc->ITV;
 			if (common->SPD != USB_HIGHSPEED)
 			{
@@ -600,6 +603,8 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 				period = (period <= 4) ? 0 : (period - 4);
 			}
 			epctx->ITV = period + 3;
+			*/
+			epctx->ITV = 3;
 		}
 		epctx->EPT = eptype;
 		
@@ -617,7 +622,7 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 		{
 			if (common->HUB->DEVICE)
 			{
-				OUTPUTTEXT("CONFIGURE HUB\n");
+				// OUTPUTTEXT("CONFIGURE HUB\n");
 				// Make sure parent hub is configured.
 				USB_HUB *hub = common->HUB;
 				XHCI_SLOT_CONTEXT *hubsctx = (XHCI_SLOT_CONTEXT *) (controller->DVC[pipe->SID] | SYSTEM_LINEAR);

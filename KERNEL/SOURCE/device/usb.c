@@ -139,19 +139,6 @@ DWORD ConfigureUSB(USB_COMMON *common)
 		LINEFEED();
 		return 0;
 	}
-	OUTPUTTEXT("USB DEVICE DT=");
-	PRINTRAX(devinfo.DT, 2);
-	OUTPUTTEXT(" VER=");
-	PRINTRAX(devinfo.VER, 4);
-	OUTPUTTEXT(" DC=");
-	PRINTRAX(devinfo.DC, 2);
-	OUTPUTTEXT(" DS=");
-	PRINTRAX(devinfo.DS, 2);
-	OUTPUTTEXT(" DP=");
-	PRINTRAX(devinfo.DP, 2);
-	OUTPUTTEXT(" MPS=");
-	PRINTRAX(devinfo.MPS, 2);
-	LINEFEED();
 
 	WORD maxpacket = devinfo.MPS;
 	if (devinfo.VER >= 0x0300) maxpacket = 1 << devinfo.MPS;
@@ -206,27 +193,6 @@ DWORD ConfigureUSB(USB_COMMON *common)
 		if (interface->DT == USB_DT_INTERFACE)
 		{
 			ic--;
-			OUTPUTTEXT("USB INTERFACE ");
-			PRINTRAX((QWORD) interface, 16);
-			OUTPUTTEXT(" L=");
-			PRINTRAX(interface->L, 2);
-			OUTPUTTEXT(" DT=");
-			PRINTRAX(interface->DT, 2);
-			OUTPUTTEXT(" IN=");
-			PRINTRAX(interface->IN, 2);
-			OUTPUTTEXT(" AS=");
-			PRINTRAX(interface->AS, 2);
-			OUTPUTTEXT(" EC=");
-			PRINTRAX(interface->EC, 2);
-			OUTPUTTEXT(" IC=");
-			PRINTRAX(interface->IC, 2);
-			OUTPUTTEXT(" IS=");
-			PRINTRAX(interface->IS, 2);
-			OUTPUTTEXT(" IP=");
-			PRINTRAX(interface->IP, 2);
-			OUTPUTTEXT(" II=");
-			PRINTRAX(interface->II, 2);
-			LINEFEED();
 			break;
 		}
 		iface += interface->L;
@@ -269,7 +235,7 @@ DWORD ConfigureUSB(USB_COMMON *common)
 	}
 	if (cc)
 	{
-		OUTPUTTEXT("CANNOT CONFIGURE DEVICE\n");
+		// OUTPUTTEXT("CANNOT CONFIGURE DEVICE\n");
 		goto CONFIG_FAIL;
 	}
 

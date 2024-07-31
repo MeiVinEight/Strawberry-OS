@@ -166,9 +166,6 @@ DWORD ConfigureKeyboard(USB_COMMON *usbdev, USB_ENDPOINT *epdesc)
 }
 DWORD ConfigureHID(USB_COMMON *usbdev)
 {
-	PRINTRAX((QWORD) usbdev, 16);
-	LINEFEED();
-
 	USB_INTERFACE *iface = usbdev->IFC;
 	if (iface->IS != USB_INTERFACE_SUBCLASS_BOOT)
 	{
