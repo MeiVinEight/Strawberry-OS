@@ -6,15 +6,15 @@
 #include <intrinsic.h>
 #include <declspec.h>
 
-void SetupMADT(ACPI_XSDT_HEADER *xsdt)
+void SetupMADT(ACPI_XSDT *xsdt)
 {
 	// Find MADT from XSDT
 	ACPI_MADT *madt = 0;
-	QWORD size = xsdt->Length - sizeof(ACPI_XSDT_HEADER);
+	QWORD size = xsdt->Length - sizeof(ACPI_XSDT);
 	QWORD *sdt = (QWORD *) (xsdt + 1);
 	while (size)
 	{
-		ACPI_XSDT_HEADER *header = (ACPI_XSDT_HEADER *) (*sdt | SYSTEM_LINEAR);
+		ACPI_XSDT *header = (ACPI_XSDT *) (*sdt | SYSTEM_LINEAR);
 		if (header->Signature == ACPI_SIGNATURE_MADT)
 		{
 			madt = (ACPI_MADT *) header;

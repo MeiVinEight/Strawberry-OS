@@ -5,7 +5,7 @@
 
 typedef struct _ACPI_MADT
 {
-	ACPI_XSDT_HEADER HEADER; // General Header
+	ACPI_XSDT HEADER; // General Header
 	DWORD LAA;               // Local APIC Address
 	DWORD F0;                // Flags
 	BYTE DATA[];             // Rrecord list
@@ -19,6 +19,6 @@ typedef struct _ACPI_MADT_PLAPIC // Processor Local APIC
 	DWORD F1;  // Flags
 } ACPI_MADT_PLAPIC;
 
-void SetupMADT(ACPI_XSDT_HEADER *);
+void SetupMADT(ACPI_XSDT *);
 
 #endif

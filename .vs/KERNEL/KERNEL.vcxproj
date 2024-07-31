@@ -625,6 +625,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\acpi\fadt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\disk.c" />
@@ -652,6 +653,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\acpi.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\acpi\fadt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
