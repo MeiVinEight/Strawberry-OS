@@ -12,6 +12,7 @@
 #include <acpi/acpi.h>
 #include <device/pci.h>
 #include <device/keyboard.h>
+#include <acpi/fadt.h>
 
 extern BYTE __ImageBase;
 CODEDECL const char OSNAME[] = "Strawberry-OS\n";
@@ -54,9 +55,27 @@ void _DllMainCRTStartup(OS_SYSTEM_TABLE *table)
 		while (KEY_RING.EID != KEY_RING.NID)
 		{
 			BYTE code = KeyNext(&KEY_RING);
-			if (code >= 4 && code < 30)
+			if (code >= 0x04 && code < 0x1E)
 			{
 				OUTCHAR('A' + code - 4);
+			}
+			else if (code == 0x28) // ENTER
+			{
+				OUTCHAR('\n');
+			}
+			else if (code == 0x29) // ESC
+			{
+				OUTPUTTEXT("ESC\n");
+				ACPIPowerOff();
+			}
+			else if (code == 0x2B) // Tab
+			{
+				QWORD x = 0x20202020;
+				OUTPUTTEXT((char *) &x);
+			}
+			else if (code == 0x2C) // Space
+			{
+				OUTCHAR(' ');
 			}
 		}
 		__halt();
