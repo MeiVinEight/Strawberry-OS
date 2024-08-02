@@ -39,10 +39,6 @@ void InterruptXHCI(INTERRUPT_STACK *stack)
 }
 void SetupXHCI()
 {
-	OUTPUTTEXT(MSG0900);
-	XHCI_OPERARTION.DTC = XHCIHUBDetect;
-	XHCI_OPERARTION.RST = XHCIHUBReset;
-	XHCI_OPERARTION.DCC = XHCIHUBDisconnect;
 	// Foreach device list
 	PCI_DEVICE *dvc = ALL_PCI_DEVICE;
 	while (dvc)
@@ -57,6 +53,9 @@ void SetupXHCI()
 void SetupXHCIControllerPCI(PCI_DEVICE *dvc)
 {
 	OutputPCIDevice(dvc->CMD);
+	XHCI_OPERARTION.DTC = XHCIHUBDetect;
+	XHCI_OPERARTION.RST = XHCIHUBReset;
+	XHCI_OPERARTION.DCC = XHCIHUBDisconnect;
 	// Enable this pci device mmio
 	QWORD bar = PCIEnableMMIO(dvc->CMD, PCI_BASE_ADDRESS_0);
 	if (!bar)

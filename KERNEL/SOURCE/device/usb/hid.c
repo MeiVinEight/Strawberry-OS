@@ -169,7 +169,7 @@ DWORD ConfigureHID(USB_COMMON *usbdev)
 	USB_INTERFACE *iface = usbdev->IFC;
 	if (iface->IS != USB_INTERFACE_SUBCLASS_BOOT)
 	{
-		OUTPUTTEXT("NOT A BOOT DEVICE\n");
+		// OUTPUTTEXT("NOT A BOOT DEVICE\n");
 		return -1;
 	}
 	
