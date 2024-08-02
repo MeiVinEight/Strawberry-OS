@@ -10,9 +10,6 @@
 #include <device/usb.h>
 #include <interrupt/interrupt.h>
 
-#define PCI_CLASS_XHCI 0x0C0330
-
-CODEDECL const char MSG0900[] = "SETUP XHCI\n";
 CODEDECL const char MSG0901[] = "ERROR:XHCI PAGE SIZE ";
 CODEDECL const char MSG0902[] = "ERROR:XHCI WAIT TIMEOUT\n";
 CODEDECL const char MSG0903[] = "UNKNOWN EVENT TYPE ";

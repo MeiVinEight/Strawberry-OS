@@ -129,6 +129,9 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\fadt.c">
       <Filter>SOURCE\acpi</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\nvme.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\KERNEL\HEADER\types.h">
@@ -217,6 +220,9 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\fadt.h">
       <Filter>HEADER\acpi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\nvme.h">
+      <Filter>HEADER\device</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

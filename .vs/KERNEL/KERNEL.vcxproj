@@ -630,6 +630,7 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\disk.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\keyboard.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\nvme.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\pci.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\scsi.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\usb.c" />
@@ -660,6 +661,7 @@
     <ClInclude Include="..\..\KERNEL\HEADER\device\disk.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\driver.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\keyboard.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\nvme.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\pci.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\scsi.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\usb.h" />

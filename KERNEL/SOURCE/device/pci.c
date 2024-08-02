@@ -6,9 +6,13 @@
 #include <memory/heap.h>
 #include <device/xhci.h>
 #include <system.h>
+#include <device/nvme.h>
 
-CODEDECL const char PCI15AD077A[] = "VMware USB3 xHCI 1.1 Controller";
-CODEDECL const char PCI808606ED[] = "Intel Corporation Comet Lake USB 3.1 xHCI Host Controller";
+CODEDECL const char PCI077A15AD[] = "VMware USB3 xHCI 1.1 Controller";
+CODEDECL const char PCI07F015AD[] = "VMware NVMe SSD Controller";
+CODEDECL const char PCI501E15B7[] = "Sandisk PC SN735 NVMe SSD (DRAM-less)";
+CODEDECL const char PCI91001E95[] = "Solid State Storage Technology CL1-3D256-Q11 NVMe SSD M.2";
+CODEDECL const char PCI06ED8086[] = "Intel Corporation Comet Lake USB 3.1 xHCI Host Controller";
 CODEDECL const char MSG0800[] = "SETUP PCI\n";
 CODEDECL const char MSG0801[] = "PCI(";
 CODEDECL const char MSG0802[] = ") ";
@@ -22,7 +26,8 @@ void SetupPCI()
 	// Detecting pci devices
 	PCIDevice();
 	// Setup pci devices
-	SetupXHCI();
+	// SetupXHCI();
+	// ConfigureNVME();
 }
 void PCIDevice()
 {
@@ -35,6 +40,8 @@ void PCIDevice()
 		{
 			// Insert head
 			PCI_DEVICE *device = (PCI_DEVICE *) HeapAlloc(HEAPK, sizeof(PCI_DEVICE));
+			if (device == 0) continue;
+
 			device->CMD = addr;
 			device->A1 = ALL_PCI_DEVICE;
 			if (ALL_PCI_DEVICE)
@@ -42,6 +49,21 @@ void PCIDevice()
 				ALL_PCI_DEVICE->A0 = device;
 			}
 			ALL_PCI_DEVICE = device;
+
+			DWORD class = PCIGetClassInterface(device->CMD);
+			switch (class)
+			{
+				case PCI_CLASS_XHCI:
+				{
+					SetupXHCIControllerPCI(device);
+					break;
+				}
+				case PCI_CLASS_NVME:
+				{
+					ConfigureNVME(device);
+					break;
+				}
+			}
 		}
 	}
 }
@@ -82,7 +104,24 @@ const char *PCIDeviceName(DWORD id)
 		{
 			switch (device)
 			{
-				case 0x077A: return PCI15AD077A;
+				case 0x077A: return PCI077A15AD;
+				case 0x07F0: return PCI07F015AD;
+			}
+			break;
+		}
+		case 0x15B7:
+		{
+			switch (device)
+			{
+				case 0x501E: return PCI501E15B7;
+			}
+			break;
+		}
+		case 0x1E95:
+		{
+			switch (device)
+			{
+				case 0x9100: return PCI91001E95;
 			}
 			break;
 		}
@@ -90,7 +129,7 @@ const char *PCIDeviceName(DWORD id)
 		{
 			switch (device)
 			{
-				case 0x06ED: return PCI808606ED;
+				case 0x06ED: return PCI06ED8086;
 			}
 			break;
 		}
