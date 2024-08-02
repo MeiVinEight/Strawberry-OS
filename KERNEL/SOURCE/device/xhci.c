@@ -551,7 +551,7 @@ USB_PIPE *XHCICreatePipe(USB_COMMON *common, USB_PIPE *upipe, USB_ENDPOINT *epde
 		if (upipe)
 		{
 			XHCI_PIPE *xpipe = (XHCI_PIPE *) upipe;
-			FreePhysicalMemory((QWORD) xpipe->RING.RING, PAGE4_4K, 1);
+			FreePhysicalMemory(physical_mapping((QWORD) xpipe->RING.RING), PAGE4_4K, 1);
 			HeapFree(xpipe);
 		}
 		return 0;

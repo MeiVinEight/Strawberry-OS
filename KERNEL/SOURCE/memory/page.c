@@ -411,6 +411,7 @@ DWORD FreePhysicalMemory(QWORD physicalAddress, QWORD pageSize, QWORD pageCount)
 	{
 		return 0;
 	}
+	if (!(physicalAddress + 1)) return 0; // SKIP NULL ADDRESS 0xFFFFFFFFFFFFFFFF (~0ULL)
 
 	QWORD page = 1ULL << (12 + 9 * pageSize);
 	MEMORY_BLOCK *block = (MEMORY_BLOCK *) HeapAlloc(HEAPK, sizeof(MEMORY_BLOCK));
