@@ -3,6 +3,7 @@
 
 #include <types.h>
 #include <device/disk.h>
+#include <device/scsi.h>
 
 #define USB_TYPE_UHCI  1
 #define USB_TYPE_OHCI  2
@@ -208,10 +209,10 @@ typedef struct _USB_COMMAND_STATUS_WRAPPER
 #pragma pack()
 typedef struct _USB_DISK_DRIVER
 {
-	DISK_DRIVER DVR;
-	USB_PIPE   *BIP;
-	USB_PIPE   *BOP;
-	DWORD       LUN;
+	SCSI_DISK_DRIVER DVR;
+	USB_PIPE        *BIP;
+	USB_PIPE        *BOP;
+	DWORD            LUN;
 } USB_DISK_DRIVER;
 
 extern const DWORD SPEED_TO_CTRL_SIZE[];

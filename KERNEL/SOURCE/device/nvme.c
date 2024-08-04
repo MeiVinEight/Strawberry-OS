@@ -7,6 +7,8 @@
 #include <memory/page.h>
 #include <system.h>
 #include <declspec.h>
+#include <common/string.h>
+#include <device/disk.h>
 
 #define NVME_CSTS_FATAL   (1U <<  1)
 #define NVME_CSTS_RDY     (1U <<  0)
@@ -141,7 +143,7 @@ DWORD NVMETransfer(NVME_NAMESPACE *ns, void *buf, QWORD lba, DWORD count, DWORD 
 
 	NVME_SUBMISSION_QUEUE_ENTRY sqe;
 	memset(&sqe, 0, sizeof(NVME_SUBMISSION_QUEUE_ENTRY));
-	sqe.CDW0 = NVME_SQE_OPC_IO_READ;// write ? NVME_SQE_OPC_IO_WRITE : NVME_SQE_OPC_IO_READ;
+	sqe.CDW0 = write ? NVME_SQE_OPC_IO_WRITE : NVME_SQE_OPC_IO_READ;
 	sqe.META = 0;
 	sqe.DATA[0] = physical_mapping(bufAddr);
 	sqe.DATA[1] = 0;
@@ -160,8 +162,22 @@ DWORD NVMETransfer(NVME_NAMESPACE *ns, void *buf, QWORD lba, DWORD count, DWORD 
 DWORD OperationNVME(DISK_OPERATION *op)
 {
 	NVME_NAMESPACE *ns = (NVME_NAMESPACE *) op->DRV;
+	DWORD cc = DISK_RET_SUCCESS;
+	QWORD phyAddr = 0;
+	QWORD pagCont = 1;
+	AllocatePhysicalMemory(&phyAddr, PAGE4_4K, &pagCont);
+	BYTE *buf = (BYTE *) (phyAddr | SYSTEM_LINEAR);
 	switch (op->CMD)
 	{
+		case CMD_IDENTIFY:
+		{
+			op->CNT = 1;
+			memset(op->DAT, 0, sizeof(DISK_IDENTIFY));
+			DISK_IDENTIFY *identify = (DISK_IDENTIFY *) op->DAT;
+			memcpy(identify->SER, ns->CTRL->SER, sizeof(ns->CTRL->SER));
+			memcpy(identify->MOD, ns->CTRL->MOD, sizeof(ns->CTRL->MOD));
+			break;
+		}
 		case CMD_READ:
 		case CMD_WRITE:
 		{
@@ -169,17 +185,25 @@ DWORD OperationNVME(DISK_OPERATION *op)
 			for (DWORD i = 0; i < op->CNT;)
 			{
 				DWORD remaining = op->CNT - i;
+				if (remaining > (4096 / ns->BSZ)) remaining = (4096 / ns->BSZ);
 				BYTE *opbuf = ((BYTE *) op->DAT) + (i * ns->BSZ);
-				DWORD blocks = NVMETransfer(ns, opbuf, op->LBA + i, remaining, isWrite);
-
-				if ((int) blocks < 0) return DISK_RET_EBADTRACK;
+				if (isWrite) memcpy(buf, opbuf, remaining * ns->BSZ);
+				DWORD blocks = NVMETransfer(ns, buf, op->LBA + i, remaining, isWrite);
+				if ((int) blocks < 0)
+				{
+					op->CNT = i;
+					cc = DISK_RET_EBADTRACK;
+					goto NVME_OVER;
+				}
+				if (!isWrite) memcpy(opbuf, buf, blocks * ns->BSZ);
 				i += blocks;
 			}
-			return DISK_RET_SUCCESS;
 		}
-		default: return DefaultDiskOperation(op);
+		default: cc = DefaultDiskOperation(op);
 	}
-	return DISK_RET_SUCCESS;
+	NVME_OVER:;
+	FreePhysicalMemory(phyAddr, PAGE4_4K, 1);
+	return cc;
 }
 void ConfigureNVME(PCI_DEVICE *dvc)
 {
@@ -265,17 +289,21 @@ void ConfigureNVME(PCI_DEVICE *dvc)
 		goto FAILED_NVME;
 	}
 
-	/*
+	
 	char buf[41];
 	memcpy(buf, identify->SERN, sizeof(identify->SERN));
 	buf[sizeof(identify->SERN)] = 0;
-	OUTPUTTEXT(buf);
-	LINEFEED();
+	char *serialN = LeadingWhitespace(buf, buf + sizeof(identify->SERN));
+	memcpy(ctrl->SER, serialN, strlen(serialN));
+	// OUTPUTTEXT(serialN);
+	// LINEFEED();
 	memcpy(buf, identify->MODN, sizeof(identify->MODN));
 	buf[sizeof(identify->MODN)] = 0;
-	OUTPUTTEXT(buf);
-	LINEFEED();
-	*/
+	serialN = LeadingWhitespace(buf, buf + sizeof(identify->MODN));
+	memcpy(ctrl->MOD, serialN, strlen(serialN));
+	// OUTPUTTEXT(serialN);
+	// LINEFEED();
+	
 
 	ctrl->NSC = identify->NNAM;
 	BYTE mdts = identify->MDTS;
@@ -428,7 +456,7 @@ void ConfigureNVME(PCI_DEVICE *dvc)
 		*/
 
 		ns->DRV.ID = nsidx;
-		ns->DRV.RMV = 0;
+		ns->DRV.DVR.RMV = 0;
 		ns->DRV.DVR.TYPE = DTYPE_NVME;
 		ns->DRV.BS = ns->BSZ;
 		ns->DRV.SCT = ns->NLBA;
@@ -442,6 +470,25 @@ void ConfigureNVME(PCI_DEVICE *dvc)
 		{
 			ns->MXRS = -1;
 		}
+		LinkupDisk((DISK_DRIVER *) ns);
+
+		/*
+		memset(identifyNS, 0, 4096);
+		DISK_OPERATION dop;
+		memset(&dop, 0, sizeof(DISK_OPERATION));
+		dop.DRV = (DISK_DRIVER *) ns;
+		dop.BSZ = ns->BSZ;
+		dop.CMD = CMD_IDENTIFY;
+		dop.LBA = 0;
+		dop.CNT = 2;
+		dop.DAT = identifyNS;
+		ExecuteDiskOperation(&dop);
+		DISK_IDENTIFY *did = (DISK_IDENTIFY *) identifyNS;
+		OUTPUTTEXT(did->SER);
+		LINEFEED();
+		OUTPUTTEXT(did->MOD);
+		LINEFEED();
+		*/
 
 		FAILED_NAMESPACE:;
 		FreePhysicalMemory(physical_mapping((QWORD) identifyNS), PAGE4_4K, 1);

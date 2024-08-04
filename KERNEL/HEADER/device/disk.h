@@ -3,6 +3,12 @@
 
 #include <types.h>
 #include <device/driver.h>
+#include <declspec.h>
+
+#define DTYPE_USB_MSC          0x00
+#define DTYPE_USB_MSC_32       0x01
+#define DTYPE_NVME             0x02
+#define DTYPE_AHCI_SATA        0x03
 
 #define DISK_RET_SUCCESS       0x00
 #define DISK_RET_EPARAM        0x01
@@ -20,16 +26,18 @@
 #define DISK_RET_EMEDIA        0xC0
 #define DISK_RET_ENOTREADY     0xAA
 
-#define CMD_RESET   0x00
-#define CMD_READ    0x02
-#define CMD_WRITE   0x03
-#define CMD_VERIFY  0x04
-#define CMD_FORMAT  0x05
-#define CMD_SEEK    0x07
-#define CMD_ISREADY 0x10
-#define CMD_SCSI    0x20
+#define CMD_IDENTIFY 0x00
+#define CMD_RESET    0x01
+#define CMD_READ     0x02
+#define CMD_WRITE    0x03
+#define CMD_VERIFY   0x04
+#define CMD_FORMAT   0x05
+#define CMD_SEEK     0x07
+#define CMD_ISREADY  0x10
+#define CMD_SCSI     0x20
 
 typedef struct _DISK_OPERATION DISK_OPERATION;
+typedef struct _DISK_DRIVER DISK_DRIVER;
 typedef DWORD (*DISK_OPERATOR)(DISK_OPERATION *);
 typedef struct _DISK_CHS
 {
@@ -41,19 +49,20 @@ typedef struct _DISK_CHS
 typedef struct _DISK_DRIVER
 {
     DEVICE_DRIVER DVR;
-    DISK_OPERATOR OP;
+    DISK_DRIVER  *PRV;
+    DISK_DRIVER  *NXT;
+    DWORD       (*OP)(DISK_OPERATION *);
     QWORD         SCT;  // Total sectors count
     DISK_CHS      LCHS; // Logical CHS
+    DISK_CHS      PCHS; // Physical CHS
     DWORD         ID;   // Unique id for a given driver type.
-    BYTE          FLPT; // Type of floppy (only for floppy drives).
-    BYTE          RMV;  // Is media removable (currently unused)
 
     // Info for EDD calls
-    DISK_CHS      PCHS; // Physical CHS
     DWORD         MSS;  // max_segment_size
     DWORD         MS;   // max_segments
-    BYTE          TRAN; // type of translation
     WORD          BS;   // block size
+    BYTE          TRAN; // type of translation
+    BYTE          FLPT; // Type of floppy (only for floppy drives).
 } DISK_DRIVER;
 typedef struct _DISK_OPERATION
 {
@@ -67,9 +76,17 @@ typedef struct _DISK_OPERATION
     // Commands: READ, WRITE, VERIFY, SEEK, FORMAT
     BYTE         CMD;
 } DISK_OPERATION;
+typedef struct _DISK_IDENTIFY
+{
+    BYTE SER[0x30];
+    BYTE MOD[0x30];
+} DISK_IDENTIFY;
+
+extern DISK_DRIVER *DISKDVC;
 
 DWORD ExecuteDiskOperation(DISK_OPERATION *);
 int DefaultDiskOperation(DISK_OPERATION *);
 DWORD DISKRW(DISK_DRIVER *, void *, QWORD, WORD, BYTE);
+void LinkupDisk(DISK_DRIVER *);
 
 #endif

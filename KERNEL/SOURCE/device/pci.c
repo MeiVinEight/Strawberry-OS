@@ -7,12 +7,17 @@
 #include <device/xhci.h>
 #include <system.h>
 #include <device/nvme.h>
+#include <device/ahci.h>
 
 CODEDECL const char PCI077A15AD[] = "VMware USB3 xHCI 1.1 Controller";
+CODEDECL const char PCI07E015AD[] = "VMware SATA AHCI controller";
 CODEDECL const char PCI07F015AD[] = "VMware NVMe SSD Controller";
 CODEDECL const char PCI501E15B7[] = "Sandisk PC SN735 NVMe SSD (DRAM-less)";
 CODEDECL const char PCI91001E95[] = "Solid State Storage Technology CL1-3D256-Q11 NVMe SSD M.2";
-CODEDECL const char PCI06ED8086[] = "Intel Corporation Comet Lake USB 3.1 xHCI Host Controller";
+CODEDECL const char PCI06D38086[] = "Intel(R) 400 Series Chipset Family SATA AHCI Controller";
+CODEDECL const char PCI06ED8086[] = "Intel(R) Comet Lake USB 3.1 xHCI Host Controller";
+CODEDECL const char PCI28298086[] = "Intel(R) 82801HM/HEM (ICH8M/ICH8M-E) SATA Controller [AHCI mode]";
+CODEDECL const char PCIA2828086[] = "Intel(R) 200 Series PCH SATA controller [AHCI mode]";
 CODEDECL const char MSG0800[] = "SETUP PCI\n";
 CODEDECL const char MSG0801[] = "PCI(";
 CODEDECL const char MSG0802[] = ") ";
@@ -51,6 +56,14 @@ void PCIDevice()
 			ALL_PCI_DEVICE = device;
 
 			DWORD class = PCIGetClassInterface(device->CMD);
+			/*
+			PRINTRAX(addr, 8);
+			OUTCHAR(' ');
+			PRINTRAX(id, 8);
+			OUTCHAR(' ');
+			PRINTRAX(class, 6);
+			LINEFEED();
+			*/
 			switch (class)
 			{
 				case PCI_CLASS_XHCI:
@@ -61,6 +74,11 @@ void PCIDevice()
 				case PCI_CLASS_NVME:
 				{
 					ConfigureNVME(device);
+					break;
+				}
+				case PCI_CLASS_AHCI:
+				{
+					ConfigureAHCI(device);
 					break;
 				}
 			}
@@ -105,6 +123,7 @@ const char *PCIDeviceName(DWORD id)
 			switch (device)
 			{
 				case 0x077A: return PCI077A15AD;
+				case 0x07E0: return PCI07E015AD;
 				case 0x07F0: return PCI07F015AD;
 			}
 			break;
@@ -129,7 +148,10 @@ const char *PCIDeviceName(DWORD id)
 		{
 			switch (device)
 			{
+				case 0x06D3: return PCI06D38086;
 				case 0x06ED: return PCI06ED8086;
+				case 0x2829: return PCI28298086;
+				case 0xA282: return PCIA2828086;
 			}
 			break;
 		}
@@ -168,4 +190,14 @@ QWORD PCIEnableMMIO(DWORD addr, DWORD off)
 	__outdword(PCI_CONFIG_ADDRESS, addr + PCI_COMMAND);
 	__outword(PCI_CONFIG_DATA, cmd);
 	return bar;
+}
+void PCIEnableBusMaster(DWORD cmd)
+{
+	// Enable busmaster
+	// Read command register and set MASTER bit
+	__outdword(PCI_CONFIG_ADDRESS, cmd + PCI_COMMAND);
+	WORD val = __inword(PCI_CONFIG_DATA) | PCI_COMMAND_MASTER;
+	// Write to command register
+	__outdword(PCI_CONFIG_ADDRESS, cmd + PCI_COMMAND);
+	__outword(PCI_CONFIG_DATA, val);
 }

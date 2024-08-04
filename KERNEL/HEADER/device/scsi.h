@@ -1,5 +1,5 @@
 #ifndef __KERNEL_DEVICE_SCSI_H__
-#endif
+#define __KERNEL_DEVICE_SCSI_H__
 
 #include <device/disk.h>
 
@@ -18,6 +18,11 @@
 
 #define SCSI_ASQ_IN_PROGRESS             0x01
 
+typedef struct _SCSI_DISK_DRIVER
+{
+	DISK_DRIVER DRV;
+	BYTE MOD[0x18];
+} SCSI_DISK_DRIVER;
 typedef struct _SCSI_CMD_TEST_UNIT_READY
 {
 	BYTE CODE; // Operation Code = 0x00
@@ -167,7 +172,7 @@ typedef struct _SCSI_DAT_READ_CAPACITY
 	DWORD BSZ;
 } SCSI_DAT_READ_CAPACITY;
 
-int SCSISetup(DISK_DRIVER *);
+int SCSISetup(SCSI_DISK_DRIVER *);
 int SCSISetupCommand(DISK_OPERATION *, void *, int);
 
-#define __KERNEL_DEVICE_SCSI_H__
+#endif

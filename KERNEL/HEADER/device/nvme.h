@@ -67,13 +67,15 @@ typedef struct _NVME_CONTROLLER
 {
 	PCI_DEVICE *DVC;
 	NVME_CAPABILITY *CAP;
-	QWORD DST; // Doorbell Stride
-	DWORD WTO; // Waiting Timeout (ms)
-	DWORD NSC; // Namespace Count
 	NVME_COMPLETION_QUEUE ACQ;
 	NVME_SUBMISSION_QUEUE ASQ;
 	NVME_COMPLETION_QUEUE ICQ;
 	NVME_SUBMISSION_QUEUE ISQ;
+	QWORD DST; // Doorbell Stride
+	DWORD WTO; // Waiting Timeout (ms)
+	DWORD NSC; // Namespace Count
+	BYTE SER[0x14];
+	BYTE MOD[0x28];
 } NVME_CONTROLLER;
 typedef struct _NVME_LOGICAL_BLOCK_ADDRESS
 {

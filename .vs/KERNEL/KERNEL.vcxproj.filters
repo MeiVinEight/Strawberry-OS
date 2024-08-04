@@ -49,6 +49,12 @@
     <Filter Include="SOURCE\device\usb">
       <UniqueIdentifier>{7f11d55b-3332-400b-8dc7-a214ed96ce63}</UniqueIdentifier>
     </Filter>
+    <Filter Include="HEADER\common">
+      <UniqueIdentifier>{26119a86-5c02-43ee-b02a-4a2063291898}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SOURCE\common">
+      <UniqueIdentifier>{e4fd6e0e-8982-4492-b64f-6764983908c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\KERNEL\SOURCE\kernel.c">
@@ -131,6 +137,12 @@
     </ClCompile>
     <ClCompile Include="..\..\KERNEL\SOURCE\device\nvme.c">
       <Filter>SOURCE\device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\ahci.c">
+      <Filter>SOURCE\device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\KERNEL\SOURCE\common\string.c">
+      <Filter>SOURCE\common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -223,6 +235,12 @@
     </ClInclude>
     <ClInclude Include="..\..\KERNEL\HEADER\device\nvme.h">
       <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\device\ahci.h">
+      <Filter>HEADER\device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\KERNEL\HEADER\common\string.h">
+      <Filter>HEADER\common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

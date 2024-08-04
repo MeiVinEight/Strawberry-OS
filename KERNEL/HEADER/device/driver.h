@@ -3,13 +3,10 @@
 
 #include <types.h>
 
-#define DTYPE_USB_MSC          0x00
-#define DTYPE_USB_MSC_32       0x01
-#define DTYPE_NVME             0x02
-
 typedef struct _DEVICE_DRIVER
 {
 	BYTE TYPE; // Driver type
+	BYTE RMV;  // Is media removable (currently unused)
 } DEVICE_DRIVER;
 
 #endif

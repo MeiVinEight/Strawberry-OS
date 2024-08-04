@@ -21,6 +21,7 @@
 #define  PCI_BASE_ADDRESS_PIO 0x01
 #define  PCI_BASE_ADDRESS_MEMORY_TYPE_64 0x04	/* 64 bit address */
 
+#define PCI_CLASS_AHCI 0x010601
 #define PCI_CLASS_NVME 0x010802
 #define PCI_CLASS_XHCI 0x0C0330
 
@@ -40,5 +41,6 @@ DWORD PCIGetClassInterface(DWORD);
 void OutputPCIDevice(DWORD);
 const char *PCIDeviceName(DWORD);
 QWORD PCIEnableMMIO(DWORD, DWORD);
+void PCIEnableBusMaster(DWORD);
 
 #endif

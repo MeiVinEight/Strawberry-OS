@@ -627,7 +627,9 @@
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\acpi.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\fadt.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\acpi\madt.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\common\string.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\console\console.c" />
+    <ClCompile Include="..\..\KERNEL\SOURCE\device\ahci.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\disk.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\keyboard.c" />
     <ClCompile Include="..\..\KERNEL\SOURCE\device\nvme.c" />
@@ -656,8 +658,10 @@
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\acpi.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\fadt.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\acpi\madt.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\common\string.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\console\console.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\declspec.h" />
+    <ClInclude Include="..\..\KERNEL\HEADER\device\ahci.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\disk.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\driver.h" />
     <ClInclude Include="..\..\KERNEL\HEADER\device\keyboard.h" />

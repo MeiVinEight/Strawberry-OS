@@ -1,5 +1,8 @@
 #include <device/disk.h>
 #include <intrinsic.h>
+#include <console/console.h>
+
+CODEDECL DISK_DRIVER *DISKDVC = 0;
 
 DWORD ExecuteDiskOperation(DISK_OPERATION *op)
 {
@@ -12,11 +15,12 @@ DWORD ExecuteDiskOperation(DISK_OPERATION *op)
 	}
 
 	ret = op->DRV->OP(op);
-	if (ret && op->CNT == origcnt) op->CNT = 0;
+	// if (ret && op->CNT == origcnt) op->CNT = 0;
 	return ret;
 }
 int DefaultDiskOperation(DISK_OPERATION *op)
 {
+	op->CNT = 0;
 	switch (op->CMD) {
 		case CMD_FORMAT:
 		case CMD_RESET:
@@ -39,4 +43,14 @@ DWORD DISKRW(DISK_DRIVER *drive, void *data, QWORD lba, WORD count, BYTE cmd)
 	dop.LBA = lba;
 	dop.DAT = data;
 	return ExecuteDiskOperation(&dop);
+}
+void LinkupDisk(DISK_DRIVER *disk)
+{
+	disk->NXT = DISKDVC;
+	disk->PRV = 0;
+	if (DISKDVC)
+	{
+		DISKDVC->PRV = disk;
+	}
+	DISKDVC = disk;
 }

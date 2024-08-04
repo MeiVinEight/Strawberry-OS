@@ -12,6 +12,14 @@ int MSCSendCBW(USB_DISK_DRIVER *udrive, int dir, void *buf, DWORD bytes)
 DWORD OperationMSC(DISK_OPERATION *op)
 {
 	USB_DISK_DRIVER *udrive = (USB_DISK_DRIVER *) op->DRV;
+	if (op->CMD == CMD_IDENTIFY)
+	{
+		op->CNT = 1;
+		memset(op->DAT, 0, sizeof(DISK_IDENTIFY));
+		DISK_IDENTIFY *identify = (DISK_IDENTIFY *) op->DAT;
+		memcpy(identify->MOD, udrive->DVR.MOD, sizeof(udrive->DVR.MOD));
+		return DISK_RET_SUCCESS;
+	}
 	BYTE dir = (op->CMD == CMD_READ || (op->CMD == CMD_SCSI && op->BSZ)) ? USB_DIR_IN : USB_DIR_OUT;
 
 	// Setup command block wrapper
@@ -77,13 +85,13 @@ int SetupMSCLUN(USB_COMMON *usbdev, USB_PIPE *ipipe, USB_PIPE *opipe, int lun)
 
 	if (ipipe->CTRL->TYPE == USB_TYPE_XHCI)
 	{
-		drive->DVR.DVR.TYPE = DTYPE_USB_MSC_32;
+		drive->DVR.DRV.DVR.TYPE = DTYPE_USB_MSC_32;
 	}
 	else
 	{
-		drive->DVR.DVR.TYPE = DTYPE_USB_MSC;
+		drive->DVR.DRV.DVR.TYPE = DTYPE_USB_MSC;
 	}
-	drive->DVR.OP = OperationMSC;
+	drive->DVR.DRV.OP = OperationMSC;
 	drive->BIP = ipipe;
 	drive->BOP = opipe;
 	drive->LUN = lun;
@@ -93,6 +101,7 @@ int SetupMSCLUN(USB_COMMON *usbdev, USB_PIPE *ipipe, USB_PIPE *opipe, int lun)
 		OUTPUTTEXT("CANNOT CONFIGURE USB MSC DEVICE\n");
 		return -1;
 	}
+	LinkupDisk((DISK_DRIVER *) drive);
 	return 0;
 }
 int ConfigureMSC(USB_COMMON *common, USB_INTERFACE *iface)

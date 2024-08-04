@@ -4,6 +4,7 @@
 #include <timer/timer.h>
 #include <memory/page.h>
 #include <system.h>
+#include <common/string.h>
 
 int SCSIWaitReady(DISK_OPERATION *op)
 {
@@ -64,11 +65,11 @@ int SCSIWaitReady(DISK_OPERATION *op)
 	}
 	return 0;
 }
-int SCSISetup(DISK_DRIVER *drive)
+int SCSISetup(SCSI_DISK_DRIVER *drive)
 {
 	DISK_OPERATION dop;
 	memset(&dop, 0, sizeof(DISK_OPERATION));
-	dop.DRV = drive;
+	dop.DRV = (DISK_DRIVER *) drive;
 	SCSI_DAT_INQUIRY data;
 	SCSI_CMD_INQUIRY cmd;
 	memset(&cmd, 0, sizeof(SCSI_CMD_INQUIRY));
@@ -86,33 +87,24 @@ int SCSISetup(DISK_DRIVER *drive)
 		OUTPUTTEXT("CANNOT INQUERY SCSI\n");
 		return cc;
 	}
+
 	/*
+	*/
 	char buf[17];
 	memcpy(buf, data.VEN, sizeof(data.VEN));
 	buf[sizeof(data.VEN)] = 0;
-	OUTPUTTEXT("VENDER  :");
-	OUTPUTTEXT(buf);
-	LINEFEED();
+	LeadingWhitespace(buf, buf + sizeof(data.VEN));
+	QWORD vendorLength = strlen(buf);
+	memcpy(drive->MOD, buf, vendorLength);
+
 	memcpy(buf, data.PROD, sizeof(data.PROD));
 	buf[sizeof(data.PROD)] = 0;
-	OUTPUTTEXT("PRODUCT :");
-	OUTPUTTEXT(buf);
-	LINEFEED();
-	memcpy(buf, data.REV, sizeof(data.REV));
-	buf[sizeof(data.REV)] = 0;
-	OUTPUTTEXT("REVISION:");
-	OUTPUTTEXT(buf);
-	LINEFEED();
-	memcpy(buf, data.SRA, sizeof(data.SRA));
-	buf[sizeof(data.SRA)] = 0;
-	OUTPUTTEXT("SERIAL  :");
-	OUTPUTTEXT(buf);
-	LINEFEED();
-	*/
+	LeadingWhitespace(buf, buf + sizeof(data.PROD));
+	memcpy(drive->MOD + vendorLength, buf, strlen(buf));
 
 	BYTE pdt = data.PDT;
 	BYTE removable = data.RMV;
-	drive->RMV = removable;
+	drive->DRV.DVR.RMV = removable;
 
 	if (pdt != SCSI_TYPE_DISK) return -1;
 
@@ -141,15 +133,15 @@ int SCSISetup(DISK_DRIVER *drive)
 		return -1;
 	}
 
-	drive->BS = __reverse32(capa.BSZ);
-	if (drive->BS != 512)
+	drive->DRV.BS = __reverse32(capa.BSZ);
+	if (drive->DRV.BS != 512)
 	{
 		OUTPUTTEXT("NOT A NORMAL DISK:SECTOR SIZE = ");
 		OUTPUTWORD(capa.BSZ);
 		LINEFEED();
 		return -1;
 	}
-	drive->SCT = __reverse32(capa.LBA) + 1;
+	drive->DRV.SCT = __reverse32(capa.LBA) + 1;
 
 	/*
 	OUTPUTTEXT("DISK CAPACITY ");
