@@ -66,8 +66,8 @@ typedef struct _DISK_DRIVER
 } DISK_DRIVER;
 typedef struct _DISK_OPERATION
 {
-    void        *DAT;
     DISK_DRIVER *DRV;
+    void        *DAT;
     // Commands: SCSI
     void        *CDB;
     QWORD        LBA;
@@ -88,5 +88,6 @@ DWORD ExecuteDiskOperation(DISK_OPERATION *);
 int DefaultDiskOperation(DISK_OPERATION *);
 DWORD DISKRW(DISK_DRIVER *, void *, QWORD, WORD, BYTE);
 void LinkupDisk(DISK_DRIVER *);
+void ConfigureDSK();
 
 #endif

@@ -163,10 +163,10 @@ DWORD OperationNVME(DISK_OPERATION *op)
 {
 	NVME_NAMESPACE *ns = (NVME_NAMESPACE *) op->DRV;
 	DWORD cc = DISK_RET_SUCCESS;
-	QWORD phyAddr = 0;
-	QWORD pagCont = 1;
-	AllocatePhysicalMemory(&phyAddr, PAGE4_4K, &pagCont);
-	BYTE *buf = (BYTE *) (phyAddr | SYSTEM_LINEAR);
+	// QWORD phyAddr = 0;
+	// QWORD pagCont = 1;
+	// AllocatePhysicalMemory(&phyAddr, PAGE4_4K, &pagCont);
+	// BYTE *buf = (BYTE *) (phyAddr | SYSTEM_LINEAR);
 	switch (op->CMD)
 	{
 		case CMD_IDENTIFY:
@@ -181,28 +181,29 @@ DWORD OperationNVME(DISK_OPERATION *op)
 		case CMD_READ:
 		case CMD_WRITE:
 		{
+			if (op->CNT > (4096 / ns->BSZ)) op->CNT = (4096 / ns->BSZ);
 			DWORD isWrite = op->CMD == CMD_WRITE;
-			for (DWORD i = 0; i < op->CNT;)
+			// for (DWORD i = 0; i < op->CNT;)
 			{
-				DWORD remaining = op->CNT - i;
-				if (remaining > (4096 / ns->BSZ)) remaining = (4096 / ns->BSZ);
-				BYTE *opbuf = ((BYTE *) op->DAT) + (i * ns->BSZ);
-				if (isWrite) memcpy(buf, opbuf, remaining * ns->BSZ);
-				DWORD blocks = NVMETransfer(ns, buf, op->LBA + i, remaining, isWrite);
+				// DWORD remaining = op->CNT - i;
+				// if (remaining > (4096 / ns->BSZ)) remaining = (4096 / ns->BSZ);
+				// BYTE *opbuf = ((BYTE *) op->DAT) + (i * ns->BSZ);
+				// if (isWrite) memcpy(buf, opbuf, remaining * ns->BSZ);
+				DWORD blocks = NVMETransfer(ns, op->DAT, op->LBA, op->CNT, isWrite);
 				if ((int) blocks < 0)
 				{
-					op->CNT = i;
+					op->CNT = 0;
 					cc = DISK_RET_EBADTRACK;
 					goto NVME_OVER;
 				}
-				if (!isWrite) memcpy(opbuf, buf, blocks * ns->BSZ);
-				i += blocks;
+				// if (!isWrite) memcpy(opbuf, buf, blocks * ns->BSZ);
+				// i += blocks;
 			}
 		}
 		default: cc = DefaultDiskOperation(op);
 	}
 	NVME_OVER:;
-	FreePhysicalMemory(phyAddr, PAGE4_4K, 1);
+	// FreePhysicalMemory(phyAddr, PAGE4_4K, 1);
 	return cc;
 }
 void ConfigureNVME(PCI_DEVICE *dvc)
@@ -472,21 +473,19 @@ void ConfigureNVME(PCI_DEVICE *dvc)
 		}
 		LinkupDisk((DISK_DRIVER *) ns);
 
+		// Try to read sector
 		/*
 		memset(identifyNS, 0, 4096);
 		DISK_OPERATION dop;
 		memset(&dop, 0, sizeof(DISK_OPERATION));
 		dop.DRV = (DISK_DRIVER *) ns;
-		dop.BSZ = ns->BSZ;
-		dop.CMD = CMD_IDENTIFY;
+		dop.CMD = CMD_READ;
 		dop.LBA = 0;
-		dop.CNT = 2;
+		dop.CNT = 8;
 		dop.DAT = identifyNS;
 		ExecuteDiskOperation(&dop);
-		DISK_IDENTIFY *did = (DISK_IDENTIFY *) identifyNS;
-		OUTPUTTEXT(did->SER);
-		LINEFEED();
-		OUTPUTTEXT(did->MOD);
+		BYTE *sector = (BYTE *) identifyNS;
+		PRINTRAX(*((QWORD *) (sector + 512)), 16);
 		LINEFEED();
 		*/
 

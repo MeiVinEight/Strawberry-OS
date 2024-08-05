@@ -3,6 +3,8 @@
 #include <memory/heap.h>
 #include <intrinsic.h>
 #include <device/scsi.h>
+#include <memory/page.h>
+#include <system.h>
 
 int MSCSendCBW(USB_DISK_DRIVER *udrive, int dir, void *buf, DWORD bytes)
 {
@@ -14,18 +16,40 @@ DWORD OperationMSC(DISK_OPERATION *op)
 	USB_DISK_DRIVER *udrive = (USB_DISK_DRIVER *) op->DRV;
 	if (op->CMD == CMD_IDENTIFY)
 	{
+		// IDENTIFY
 		op->CNT = 1;
 		memset(op->DAT, 0, sizeof(DISK_IDENTIFY));
 		DISK_IDENTIFY *identify = (DISK_IDENTIFY *) op->DAT;
 		memcpy(identify->MOD, udrive->DVR.MOD, sizeof(udrive->DVR.MOD));
 		return DISK_RET_SUCCESS;
 	}
+
+	/*
+	OUTPUTTEXT("USB DISK R/W LBA=");
+	PRINTRAX(op->LBA, 8);
+	OUTPUTTEXT(" CNT=");
+	PRINTRAX(op->CNT, 4);
+	OUTPUTTEXT(" DAT=");
+	PRINTRAX((QWORD) op->DAT, 16);
+	LINEFEED();
+	*/
+
+	int blocksize = -1;
+	if (op->CMD == CMD_SCSI)
+	{
+		blocksize = op->BSZ;
+	}
+	else if (op->CMD == CMD_READ || op->CMD == CMD_WRITE)
+	{
+		blocksize = op->DRV->BS;
+	}
+	if (blocksize && (op->CNT > (4096 / blocksize))) op->CNT = (4096 / blocksize);
 	BYTE dir = (op->CMD == CMD_READ || (op->CMD == CMD_SCSI && op->BSZ)) ? USB_DIR_IN : USB_DIR_OUT;
 
 	// Setup command block wrapper
 	USB_COMMAND_BLOCK_WRAPPER cbw;
 	memset(&cbw, 0, sizeof(USB_COMMAND_BLOCK_WRAPPER));
-	int blocksize = SCSISetupCommand(op, cbw.CMD, USB_CDB_SIZE);
+	SCSISetupCommand(op, cbw.CMD, USB_CDB_SIZE);
 	if (blocksize < 0)
 	{
 		OUTPUTTEXT("CANNOT SETUP CBW\n");
@@ -33,6 +57,13 @@ DWORD OperationMSC(DISK_OPERATION *op)
 	}
 
 	DWORD bytes = blocksize * op->CNT;
+
+	/*
+	OUTPUTTEXT("BYTE ");
+	PRINTRAX(bytes, 8);
+	LINEFEED();
+	*/
+
 	cbw.SIG = CBW_SIGNATURE;
 	cbw.TAG = 999;
 	cbw.DTL = bytes;
@@ -40,7 +71,7 @@ DWORD OperationMSC(DISK_OPERATION *op)
 	cbw.LUN = udrive->LUN;
 	cbw.CBL = USB_CDB_SIZE;
 
-    // Transfer cbw to device
+	// Transfer cbw to device
 	int cc = MSCSendCBW(udrive, USB_DIR_OUT, &cbw, 31);
 	if (cc)
 	{
@@ -68,7 +99,7 @@ DWORD OperationMSC(DISK_OPERATION *op)
 		OUTPUTTEXT("CANNOT TRANSFER CSW\n");
 		goto MSC_FAILED;
 	}
-	
+
 	if (!csw.STS) return DISK_RET_SUCCESS;
 	if (csw.STS == 2) goto MSC_FAILED;
 	if (blocksize) op->CNT -= csw.RSD / blocksize;
@@ -102,6 +133,48 @@ int SetupMSCLUN(USB_COMMON *usbdev, USB_PIPE *ipipe, USB_PIPE *opipe, int lun)
 		return -1;
 	}
 	LinkupDisk((DISK_DRIVER *) drive);
+
+	/*
+	BYTE *sector = 0;
+	QWORD pageCount = 1;
+	AllocatePhysicalMemory((QWORD *) &sector, PAGE4_4K, &pageCount);
+	sector = (BYTE *) (((QWORD) sector) | SYSTEM_LINEAR);
+	memset(sector, 0, 4096);
+	int cc = DISKRW((DISK_DRIVER *) drive, sector, 1, 1, CMD_READ);
+	if (cc)
+	{
+		OUTPUTTEXT("CANNOT READ SECTOR ");
+		PRINTRAX(cc, 2);
+		LINEFEED();
+		return -1;
+	}
+	PRINTRAX(*((QWORD *) sector), 16);
+	// OUTPUTTEXT(sector);
+	OUTCHAR('\n');
+	FreePhysicalMemory(physical_mapping((QWORD) sector), PAGE4_4K, 1);
+	*/
+
+	/*
+	QWORD pagAddr = 0;
+	QWORD pagCont = 1;
+	AllocatePhysicalMemory(&pagAddr, PAGE4_4K, &pagCont);
+	BYTE *pageBuffer = (BYTE *) (pagAddr | SYSTEM_LINEAR);
+	memset(pageBuffer, 0, 4096);
+
+	DISK_OPERATION dop;
+	memset(&dop, 0, sizeof(DISK_OPERATION));
+	dop.DRV = (DISK_DRIVER *) drive;
+	dop.CMD = CMD_READ;
+	dop.LBA = 0;
+	dop.CNT = 8;
+	dop.DAT = pageBuffer;
+	ExecuteDiskOperation(&dop);
+
+	PRINTRAX(*((QWORD *) (pageBuffer + 512)), 16);
+	LINEFEED();
+	FreePhysicalMemory(pagAddr, PAGE4_4K, 1);
+	*/
+
 	return 0;
 }
 int ConfigureMSC(USB_COMMON *common, USB_INTERFACE *iface)

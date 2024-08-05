@@ -173,17 +173,17 @@ DWORD OperationAHCI(DISK_OPERATION *op)
 		case CMD_READ:
 		case CMD_WRITE:
 		{
-			if (op->CMD == CMD_IDENTIFY) op->CNT = 1;
-			QWORD pagAddr = 0;
-			QWORD pagCont = 1;
-			AllocatePhysicalMemory(&pagAddr, 0, &pagCont);
-			BYTE *buf = (BYTE *) (pagAddr | SYSTEM_LINEAR);
+			if (op->CNT > (4096 / port->DRV.BS)) op->CNT = (4096 / port->DRV.BS);
+			// QWORD pagAddr = 0;
+			// QWORD pagCont = 1;
+			// AllocatePhysicalMemory(&pagAddr, 0, &pagCont);
+			// BYTE *buf = (BYTE *) (pagAddr | SYSTEM_LINEAR);
 			// memset(buf, 0, 4096);
-			for (WORD i = 0; i < op->CNT;)
+			// for (WORD i = 0; i < op->CNT;)
 			{
-				WORD remaining = op->CNT - i;
-				if (remaining > (4096 / port->DRV.BS)) remaining = (4096 / port->DRV.BS);
-				BYTE *opbuf = ((BYTE *) op->DAT) + (i * port->DRV.BS);
+				// WORD remaining = op->CNT - i;
+				// if (remaining > (4096 / port->DRV.BS)) remaining = (4096 / port->DRV.BS);
+				// BYTE *opbuf = ((BYTE *) op->DAT) + (i * port->DRV.BS);
 				DWORD cmd = 0;
 
 				// DISK_CMD cmd to ATA CMD
@@ -201,19 +201,20 @@ DWORD OperationAHCI(DISK_OPERATION *op)
 					}
 				}
 				DWORD isWrite = AHCICommandWR(cmd);
-				if (isWrite) memcpy(buf, opbuf, remaining * port->DRV.BS);
-				DWORD blocks = OperationATA(port->PRT, op->LBA + i, remaining, cmd, buf);
+				// if (isWrite) memcpy(buf, opbuf, remaining * port->DRV.BS);
+				DWORD blocks = OperationATA(port->PRT, op->LBA, op->CNT, cmd, op->DAT);
 				if (blocks >> 16)
 				{
-					op->CNT = i;
+					op->CNT = 0;
 					cc = DISK_RET_EBADTRACK;
 					goto AHCI_OVER;
 				}
-				if (!isWrite) memcpy(opbuf, buf, blocks * port->DRV.BS);
-				i += blocks;
+				op->CNT = blocks;
+				// if (!isWrite) memcpy(opbuf, buf, blocks * port->DRV.BS);
+				// i += blocks;
 			}
 			AHCI_OVER:;
-			FreePhysicalMemory(pagAddr, PAGE4_4K, 1);
+			// FreePhysicalMemory(pagAddr, PAGE4_4K, 1);
 			break;
 		}
 		default: cc = DefaultDiskOperation(op);
@@ -315,7 +316,7 @@ void ConfigureAHCI(PCI_DEVICE *dvc)
 				*/
 				// Try to read sector
 				/*
-				cc = OperationATA(port, 3907029167, 1, ATA_CMD_READ_DMA_EX, buf);
+				cc = OperationATA(port, 1, 1, ATA_CMD_READ_DMA_EX, buf);
 				if (cc >> 16)
 				{
 					OUTPUTTEXT("CANNOT READ AHCI DISK ");
@@ -324,22 +325,19 @@ void ConfigureAHCI(PCI_DEVICE *dvc)
 					while (1) __halt();
 				}
 				((QWORD *) buf)[1] = '\n';
-				OUTPUTTEXT(buf);
+				PRINTRAX(*((QWORD *) buf), 16);
+				LINEFEED();
 
 				memset(buf, 0, 4096);
 				DISK_OPERATION dop;
 				memset(&dop, 0, sizeof(DISK_OPERATION));
 				dop.DRV = (DISK_DRIVER *) ap;
-				dop.BSZ = ap->DRV.BS;
-				dop.CMD = CMD_IDENTIFY;
-				dop.CNT = 1;
+				dop.CMD = CMD_READ;
+				dop.CNT = 8;
 				dop.DAT = buf;
 				dop.LBA = 0;
 				ExecuteDiskOperation(&dop);
-				DISK_IDENTIFY *id = (DISK_IDENTIFY *) buf;
-				OUTPUTTEXT(id->SER);
-				LINEFEED();
-				OUTPUTTEXT(id->MOD);
+				PRINTRAX(*((QWORD *) (buf + 512)), 16);
 				LINEFEED();
 				*/
 
